@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>La Porteña · Café Bar en Alicante</title>
+<meta name="description" content="Café bar argentino en Alicante, junto a la estación. Medialunas, empanadas, alfajores artesanales y tienda online de yerba mate, mates y termos.">
+<meta name="theme-color" content="#0B110D">
+<link rel="icon" href="assets/img/logo.png">
+<meta property="og:title" content="La Porteña · Café Bar en Alicante">
+<meta property="og:description" content="Desayunos y almuerzos argentinos en Alicante. Tienda online de yerba, mates y termos.">
+<meta property="og:image" content="assets/img/local/fachada.jpg">
+<meta property="og:type" content="website">
+
+<script>
+  /* Antes de pintar: marca que hay JS y decide si toca la intro del brote
+     (solo la primera vez por sesión). Si el JS de la página no llega a
+     cargar (sin conexión al CDN, por ejemplo), a los 8 s se aparta sola. */
+  (function (h) {
+    h.classList.add('js');
+    try { if (sessionStorage.getItem('lp.intro')) h.classList.add('intro-skip'); } catch (e) {}
+    setTimeout(function () {
+      if (!window.__lpIntro) { h.classList.add('intro-skip'); h.classList.remove('intro-on'); }
+    }, 8000);
+  })(document.documentElement);
+</script>
+<noscript><style>.intro{display:none}</style></noscript>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@200;300;400;500&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ======================================================= INTRO: EL BROTE -->
+<div class="intro" id="intro" aria-hidden="true">
+  <svg class="intro__plant" id="introPlant" viewBox="0 0 200 270">
+    <defs>
+      <linearGradient id="introG" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#3E6B45"/><stop offset="1" stop-color="#A3CF8C"/>
+      </linearGradient>
+    </defs>
+    <path class="intro__suelo" d="M44 258 Q100 250 156 258"/>
+    <path class="intro__tallo" d="M100 256 C 96 214 108 186 100 146 C 93 110 106 78 100 34"/>
+    <g class="intro__hojas"></g>
+  </svg>
+  <p class="intro__name">La Porteña</p>
+  <p class="intro__sub">Café · Bar</p>
+  <span class="intro__skip">Toca para entrar</span>
+</div>
+
+<!-- ============================================================ NAVBAR -->
+<header class="nav" id="nav">
+  <a class="nav__logo" href="#top" aria-label="La Porteña, inicio">
+    <img src="assets/img/logo.png" alt="">
+    <span class="nav__name"><b>La Porteña</b><span>Café · Bar</span></span>
+  </a>
+  <div class="nav__right">
+    <a class="cartbtn" href="tienda.html" aria-label="Ir a la tienda online">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h2.2l2.1 10.4a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 2-1.5L20.5 8H6.2"/><circle cx="10" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/></svg>
+      <span>Tienda</span>
+      <span class="cartbtn__n">0</span>
+    </a>
+    <button class="burger" id="burger" aria-label="Abrir el menú" aria-expanded="false" aria-controls="menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<nav class="menu" id="menu" aria-label="Menú principal">
+  <ul class="menu__list">
+    <li><a href="#nosotros">Sobre nosotros</a></li>
+    <li><a href="#carta">La carta</a></li>
+    <li><a href="#vitrina">La vitrina</a></li>
+    <li><a href="#resenas">Reseñas</a></li>
+    <li><a href="#redes">Redes</a></li>
+    <li><a href="tienda.html">Tienda online <i>Yerba · Mates · Termos</i></a></li>
+    <li><a href="#contacto">Dónde estamos</a></li>
+  </ul>
+  <div class="menu__foot">
+    <span data-dir></span>
+    <a data-tel href="#"></a>
+    <a data-ig href="#" target="_blank" rel="noopener">Instagram</a>
+    <span data-hor></span>
+  </div>
+</nav>
+
+<main id="top">
+
+  <!-- ====================================================== HERO (verde) -->
+  <section class="hero" id="hero">
+    <div class="hero__bg">
+      <video src="assets/video/hero.mp4" autoplay muted loop playsinline poster="assets/img/poster/hero.jpg"></video>
+    </div>
+    <div class="hero__frame" id="heroFrame" aria-hidden="true"></div>
+
+    <div class="hero__in">
+      <img class="hero__mark" src="assets/img/logo.png" alt="" id="heroMark">
+      <h1 id="heroTitle" aria-label="La Porteña">La Porteña</h1>
+      <p class="hero__sub">Café · Bar · Alicante</p>
+      <p class="hero__chalk" id="heroChalk">Compartamos la misma pasión</p>
+      <div class="hero__cta" id="heroCta">
+        <a class="btn btn--solid" href="#carta">Ver la carta</a>
+        <a class="btn btn--ghost" href="tienda.html">Tienda online</a>
+      </div>
+      <div class="promos" id="promos"></div>
+    </div>
+    <div class="scrollcue" aria-hidden="true"><span>Pasa</span><i></i></div>
+  </section>
+
+  <!-- ================================================= NOSOTROS (blanco) -->
+  <section class="leafy" id="nosotros">
+    <div class="wrap">
+      <p class="eyebrow">Desde Buenos Aires hasta la Estación</p>
+      <h2>Un cachito de Argentina<br>en Alicante</h2>
+      <div class="sprig" aria-hidden="true"></div>
+
+      <div class="about">
+        <div class="about__media">
+          <video src="assets/video/local.mp4" autoplay muted loop playsinline poster="assets/img/poster/local.jpg"></video>
+        </div>
+        <div data-reveal>
+          <p>Abrimos a las ocho con el horno encendido. Primero salen las medialunas,
+             después las empanadas, y a media mañana el mostrador ya está lleno de
+             alfajores hechos aquí, tartas y masitas.</p>
+          <p>Entre el muro verde de la entrada y las plantas del interior, somos un
+             café de barrio con acento argentino: podés desayunar un cortado con una
+             medialuna, tomar la caña con una tapa al mediodía o llevarte un kilo de
+             yerba para casa.</p>
+          <p class="about__sign">Compartamos la misma pasión.</p>
+          <div class="stats">
+            <div class="stat"><b data-count="4.5" data-dec="1">0</b><span>En Google</span></div>
+            <div class="stat"><b data-count="471">0</b><span>Reseñas</span></div>
+            <div class="stat"><b data-count="11">0</b><span>Rellenos de empanada</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== CARTA (verde) -->
+  <section class="board" id="carta">
+    <div class="wrap">
+      <p class="eyebrow">Nuestro herbario</p>
+      <h2>La carta</h2>
+      <p class="lede">Del café de la mañana a la última copa. Precios con IVA incluido.</p>
+      <div class="sprig" aria-hidden="true"></div>
+      <div class="carta__tabs" id="cartaTabs" role="tablist"></div>
+      <div class="carta__grid" id="cartaGrid"></div>
+    </div>
+  </section>
+
+  <!-- =========================================== VITRINA 3D (blanco) -->
+  <section class="leafy" id="vitrina">
+    <div class="wrap">
+      <p class="eyebrow">Lo que sale del horno</p>
+      <h2>La vitrina</h2>
+      <p class="lede">Arrástrala, gírala o deja que pase sola.</p>
+      <div class="sprig" aria-hidden="true"></div>
+
+      <div class="c3d" id="c3d" role="group" aria-label="Fotos de nuestra vitrina. Usa las flechas para girar.">
+        <div class="c3d__stage" id="c3dStage"></div>
+      </div>
+      <p class="c3d__cap" id="c3dCap" aria-live="polite"></p>
+      <div class="c3d__ui">
+        <button class="c3d__arrow" id="c3dPrev" aria-label="Foto anterior">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="c3d__dots" id="c3dDots"></div>
+        <button class="c3d__arrow" id="c3dNext" aria-label="Foto siguiente">
+          <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =================================================== RESEÑAS (verde) -->
+  <section class="board" id="resenas">
+    <div class="wrap">
+      <p class="eyebrow">Lo que dicen de nosotros</p>
+      <h2>Reseñas</h2>
+      <div class="sprig" aria-hidden="true"></div>
+
+      <div class="rev__top">
+        <div class="score" data-reveal>
+          <div class="score__n" id="revScore">0,0</div>
+          <div class="stars" id="revStars" aria-hidden="true"></div>
+          <div class="score__c"><span id="revCount">0</span> reseñas en Google</div>
+          <div class="bars" id="revBars"></div>
+        </div>
+        <div data-reveal>
+          <p class="lede" style="margin-top:0">Lo que más repiten quienes nos visitan:</p>
+          <div class="chips" id="revChips"></div>
+          <p style="margin-top:26px">
+            <a class="btn btn--ghost" data-goog href="#" target="_blank" rel="noopener">Leer todas en Google</a>
+          </p>
+        </div>
+      </div>
+
+      <div class="enredadera" id="enredadera"></div>
+    </div>
+  </section>
+
+  <!-- ===================================================== REDES (blanco) -->
+  <section class="leafy" id="redes">
+    <div class="wrap">
+      <p class="eyebrow">Día a día</p>
+      <h2>En nuestras redes</h2>
+      <p class="lede">Lo que pasa en la barra, en el horno y en la vitrina. Toca el altavoz para oírlo.</p>
+      <div class="sprig" aria-hidden="true"></div>
+      <div class="reels" id="reels"></div>
+      <p style="margin-top:34px">
+        <a class="btn" data-ig href="#" target="_blank" rel="noopener">Seguirnos en Instagram</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ================================================= LA TIENDA (verde) -->
+  <section class="board shoplink" id="latienda">
+    <div class="wrap">
+      <p class="eyebrow">Tienda online</p>
+      <h2>Llevate La Porteña a casa</h2>
+      <div class="sprig" aria-hidden="true"></div>
+      <div class="shoplink__g">
+        <div class="shoplink__v">
+          <video src="assets/video/tienda.mp4" autoplay muted loop playsinline poster="assets/img/poster/tienda.jpg"></video>
+        </div>
+        <div data-reveal>
+          <p class="lede" style="margin-top:0">La misma estantería que ves en el mostrador,
+             pero para casa. Yerba, mates, termos y bombillas con envío a toda España;
+             el almacén y la pastelería, para recoger aquí.</p>
+          <ul>
+            <li><i></i>28 yerbas, de Taragüí a Sara</li>
+            <li><i></i>Mates, termos y bombillas</li>
+            <li><i></i>Alfajores y galletitas argentinas</li>
+            <li><i></i>Recogida en tienda el día que elijas</li>
+          </ul>
+          <a class="btn btn--solid" href="tienda.html">Entrar en la tienda</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================== CONTACTO (blanco) -->
+  <section class="leafy" id="contacto">
+    <div class="wrap">
+      <p class="eyebrow">Te esperamos</p>
+      <h2>Dónde estamos</h2>
+      <div class="sprig" aria-hidden="true"></div>
+      <div class="about">
+        <div class="about__media" style="aspect-ratio:16/10">
+          <img src="assets/img/local/fachada.jpg" alt="Interior de La Porteña, con la pizarra de la puerta">
+        </div>
+        <div class="datos foot__g" data-reveal>
+          <div>
+            <h4>Dirección</h4>
+            <p data-dir></p>
+            <a data-mapa href="#" target="_blank" rel="noopener">Abrir en Google Maps</a>
+          </div>
+          <div>
+            <h4>Horario</h4>
+            <div data-horl></div>
+          </div>
+          <div>
+            <h4>Contacto</h4>
+            <a data-tel href="#"></a>
+            <a data-ig href="#" target="_blank" rel="noopener">@laportenialicante</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ==================================================== FOOTER (verde) -->
+<footer class="board foot">
+  <div class="wrap">
+    <div class="foot__g">
+      <div>
+        <img class="foot__logo" src="assets/img/logo.png" alt="La Porteña">
+        <p>Café de barrio con acento argentino.<br>Alicante.</p>
+      </div>
+      <div>
+        <h4>Visitar</h4>
+        <a href="#carta">La carta</a>
+        <a href="#vitrina">La vitrina</a>
+        <a href="#resenas">Reseñas</a>
+        <a href="#contacto">Dónde estamos</a>
+      </div>
+      <div>
+        <h4>Tienda</h4>
+        <a href="tienda.html#yerbas">Yerbas</a>
+        <a href="tienda.html#mates">Mates y bombillas</a>
+        <a href="tienda.html#termos">Termos</a>
+        <a href="tienda.html#almacen">Almacén</a>
+      </div>
+      <div>
+        <h4>Hablamos</h4>
+        <a data-tel href="#"></a>
+        <a data-ig href="#" target="_blank" rel="noopener">Instagram</a>
+        <p data-dir></p>
+      </div>
+    </div>
+    <div class="foot__end">
+      <span>© <span data-yr></span> La Porteña · Café Bar</span>
+      <span>Los envíos los realiza la empresa de transporte; coste y plazo según tarifa vigente.</span>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/common.js"></script>
+<script src="js/home.js"></script>
+</body>
+</html>
