@@ -4,25 +4,26 @@
 (() => {
 'use strict';
 const { $, $$, REDUCED, FINE, GS, eur, svgFor, waLink, toast, badge, byId, units, subtotal,
-        cart, save, foliage, onView } = LP;
+        cart, save, foliage, lamps, fairy, onView } = LP;
 
 const hayRecogidaObligatoria = () => Object.keys(cart).some(id => byId(id)?.pickupOnly);
 
-/* ------------------------------------------------------------ las plantas */
-foliage($('#shopHero'), [
-  { css: 'top:-6%;right:-4%;width:260px;transform:rotate(166deg)', n: 15 },
-  { css: 'bottom:-10%;left:-4%;width:220px;transform:rotate(-12deg)', n: 13 }
+/* ------------------------------------------------------- luces y plantas */
+fairy($('#fairy'));
+lamps($('#shopHero'), [
+  { x: 64, len: 80,  t: 6.2, d: 0,    a: 2.4 },
+  { x: 86, len: 150, t: 5.4, d: -1.8, a: 2.8 }
 ]);
-foliage($('#catalogo'), [
-  { css: 'top:2%;right:-5%;width:230px;transform:rotate(170deg)', n: 14 },
-  { css: 'top:38%;left:-6%;width:220px;transform:rotate(-14deg)', n: 13 },
-  { css: 'bottom:2%;right:-4%;width:240px;transform:rotate(190deg)', n: 14 }
+foliage($('#shopHero'), [
+  { css: 'bottom:-12%;left:-4%;width:230px;transform:rotate(12deg)', n: 13 }
 ]);
 foliage($('#envios'), [
-  { css: 'bottom:-10%;left:-3%;width:200px;transform:rotate(14deg)', n: 12 }
+  { css: 'bottom:-12%;right:-3%;width:230px;transform:rotate(172deg)', n: 13 }
 ]);
 
 /* --------------------------------------------------------------- catálogo */
+const FOTOS = { alfajores: [['02'], ['12']] };
+
 function pintarTienda() {
   $('#shopbar').innerHTML = SECCIONES
     .map((s, i) => `<button data-go="${s.id}"${i ? '' : ' class="on"'}>${s.t}</button>`).join('');
@@ -33,8 +34,9 @@ function pintarTienda() {
     const soloRecogida = items.every(p => p.pickupOnly);
     return `
       <section class="shopsec" id="${sec.id}">
+        ${FOTOS[sec.id] ? `<div class="shopsec__ph" aria-hidden="true">${FOTOS[sec.id].map(([n, al], i) => `<figure class="leafph leafph--sm${i ? ' leafph--m' : ''}"><img src="assets/img/comida/comida-${n}.jpg" alt="" loading="lazy"></figure>`).join('')}</div>` : ''}
         <div class="shopsec__h"><h2>${sec.t}</h2><p>${sec.d}</p></div>
-        <div class="sprig shopsec__r" aria-hidden="true"></div>
+        <span class="chalk" aria-hidden="true"></span>
         ${soloRecogida ? `
           <span class="pickupnote">
             <svg viewBox="0 0 24 24"><path d="M3 10h18M5 10V7a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3M5 10v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9"/></svg>
@@ -184,7 +186,7 @@ function pintarPanel(entrada = false) {
         <p>Tu pedido está vacío.</p>
         <p style="font-size:.88rem">Empieza por las yerbas, que es lo que más sale.</p>
       </div>`;
-    foot.innerHTML = `<button class="btn btn--green wide" id="seguir">Ver la tienda</button>`;
+    foot.innerHTML = `<button class="btn btn--solid wide" id="seguir">Ver la tienda</button>`;
     $('#seguir').addEventListener('click', () => abrirPanel(false));
     badge();
     return;
@@ -214,7 +216,7 @@ function pintarPanel(entrada = false) {
       <div><span>Envío</span><span>${entrega === 'recogida' ? 'Gratis' : 'Según transporte'}</span></div>
       <div class="tot"><span>Total</span><span>${eur(subtotal())}${entrega === 'envio' ? ' + envío' : ''}</span></div>
     </div>
-    <button class="btn btn--green wide" id="send">Enviar el pedido</button>
+    <button class="btn btn--solid wide" id="send">Enviar el pedido</button>
     <p class="hint" style="margin:12px 0 0;text-align:center">
       Te confirmamos disponibilidad ${entrega === 'envio' ? 'y el coste exacto del envío ' : ''}antes de cobrar nada.
     </p>`;
@@ -233,7 +235,7 @@ function bloqueEntrega() {
   const max = new Date(hoy.getTime() + 30 * 864e5).toISOString().slice(0, 10);
 
   return `
-    <h4 style="margin:26px 0 10px;font-size:.74rem;letter-spacing:.18em;text-transform:uppercase;color:var(--forest-2);font-weight:400">Cómo lo recibes</h4>
+    <h4>Cómo lo recibes</h4>
     <div class="choices">
       <label class="choice${entrega === 'recogida' ? ' on' : ''}">
         <input type="radio" name="entrega" value="recogida" ${entrega === 'recogida' ? 'checked' : ''}>

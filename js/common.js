@@ -26,26 +26,24 @@ function onView(el, fn, margin = '0px 0px -12% 0px') {
 }
 
 /* ================================================================ botánica
-   Un helecho dibujado a medida: el motivo del muro vegetal del local.
-   El primer trazo es el tallo; luego van los foliolos por pares, de la base
-   a la punta, que es el orden en el que se dibujan al crecer.              */
-function fern({ h = 220, w = 120, n = 15 } = {}) {
-  const cx = w / 2;
-  const out = [`<path d="M${cx} ${h} C ${cx - 4} ${h * .62} ${cx + 4} ${h * .3} ${cx} 5"/>`];
+   Las hojas de palmera del papel pintado del mostrador, dibujadas a medida.
+   Un nervio central curvo y foliolos puntiagudos a cada lado.              */
+function frond({ h = 260, w = 150, n = 13, fill = true } = {}) {
+  const cx = w / 2, out = [];
   for (let i = 0; i < n; i++) {
     const t = i / (n - 1);
-    const len = Math.pow(1 - t, .8) * (cx - 5) + 3;
-    const y   = h - 12 - t * (h - 24);
-    const up  = 9 * (1 - t) + 3;
-    out.push(`<path d="M${cx} ${y} q ${-len * .5} ${-up * .4} ${-len} ${-up}"/>`);
-    out.push(`<path d="M${cx} ${y} q ${ len * .5} ${-up * .4} ${ len} ${-up}"/>`);
+    const y = h - 26 - t * (h - 46);
+    const len = (cx - 4) * Math.pow(Math.sin(Math.PI * (.22 + t * .72)), .85) * (1 - t * .25) + 4;
+    const rise = len * .5 + 4, wd = 4 + len * .09;
+    [-1, 1].forEach(s => {
+      const x2 = cx + s * len, y2 = y - rise;
+      out.push(`<path d="M${cx} ${y} C ${cx + s * len * .3} ${y - wd - 2}, ${cx + s * len * .7} ${y2 - wd}, ${x2} ${y2}
+        C ${cx + s * len * .74} ${y2 + wd * .9}, ${cx + s * len * .34} ${y + wd * .7}, ${cx} ${y + 2} Z"/>`);
+    });
   }
-  return `<g class="sway">${out.join('')}</g>`;
+  const rib = `<path class="rib" fill="none" stroke="currentColor" stroke-width="2" d="M${cx} ${h} C ${cx - 5} ${h * .6} ${cx + 5} ${h * .3} ${cx} 12"/>`;
+  return `<g class="sway" ${fill ? 'fill="currentColor"' : ''}>${rib}${out.join('')}</g>`;
 }
-
-const fernSvg = (cls = '', o = {}) => `
-  <svg class="${cls}" viewBox="0 0 ${o.w || 120} ${o.h || 220}" fill="none" stroke="currentColor"
-       stroke-width="${o.sw || 1.6}" stroke-linecap="round" aria-hidden="true">${fern(o)}</svg>`;
 
 function foliage(sec, specs) {
   if (!sec) return;
@@ -53,89 +51,84 @@ function foliage(sec, specs) {
   layer.className = 'foliage';
   layer.setAttribute('aria-hidden', 'true');
   layer.innerHTML = specs.map(s =>
-    `<svg viewBox="0 0 120 220" fill="none" stroke="currentColor" stroke-width="1.5"
-          stroke-linecap="round" style="${s.css}">${fern({ n: s.n || 14 })}</svg>`).join('');
+    `<svg viewBox="0 0 150 260" style="${s.css}">${frond({ n: s.n || 13 })}</svg>`).join('');
   sec.prepend(layer);
-}
-
-/* Deja el helecho sin dibujar */
-function prepFern(svg) {
-  $$('path', svg).forEach(p => {
-    const L = p.getTotalLength();
-    p.style.strokeDasharray = L;
-    p.style.strokeDashoffset = L;
-  });
-}
-
-/* Lo hace crecer: primero el tallo, luego los foliolos de abajo arriba */
-function growFern(svg, { delay = 0, speed = 1 } = {}) {
-  const [tallo, ...hojas] = $$('path', svg);
-  return gsap.timeline({ delay })
-    .to(tallo, { strokeDashoffset: 0, duration: 1.1 * speed, ease: 'power2.inOut' })
-    .to(hojas, { strokeDashoffset: 0, duration: .5 * speed, ease: 'power2.out',
-                 stagger: .028 * speed }, .25 * speed);
 }
 
 /* Un balanceo lento, desde la base, como si entrara aire por la puerta */
 function sway(svg, amp = 2.4) {
   const g = $('.sway', svg);
   if (!g || REDUCED || !GS) return;
-  const vb = svg.viewBox.baseVal;
   gsap.to(g, {
     rotation: (Math.random() < .5 ? -1 : 1) * gsap.utils.random(amp * .6, amp),
-    svgOrigin: `${vb.width / 2} ${vb.height}`,
-    duration: gsap.utils.random(3.2, 5.2), ease: 'sine.inOut',
-    yoyo: true, repeat: -1, delay: gsap.utils.random(0, 1.6)
+    svgOrigin: '75 260', duration: gsap.utils.random(3.6, 5.8), ease: 'sine.inOut',
+    yoyo: true, repeat: -1, delay: gsap.utils.random(0, 2)
   });
 }
 
-/* Los helechos de cada sección crecen al llegar y luego se mecen */
 function animarFoliage() {
-  $$('section .foliage, footer .foliage').forEach(layer => {
+  $$('.foliage').forEach(layer => {
     const svgs = $$('svg', layer);
-    if (!GS || REDUCED) return;
-    svgs.forEach(prepFern);
-    onView(layer.parentElement, () => {
-      svgs.forEach((s, i) => { growFern(s, { delay: i * .2, speed: 1.2 }); sway(s, 2); });
-    }, '0px 0px -20% 0px');
-
-    if (window.ScrollTrigger) svgs.forEach((s, i) => gsap.fromTo(s,
-      { yPercent: i % 2 ? 10 : -10 }, { yPercent: i % 2 ? -10 : 10, ease: 'none',
+    svgs.forEach(s => sway(s, 2.2));
+    if (!GS || REDUCED || !window.ScrollTrigger || !layer.parentElement.matches('section, .hero, footer')) return;
+    svgs.forEach((s, i) => gsap.fromTo(s,
+      { yPercent: i % 2 ? 8 : -8 }, { yPercent: i % 2 ? -8 : 8, ease: 'none',
         scrollTrigger: { trigger: layer.parentElement, start: 'top bottom', end: 'bottom top', scrub: true } }));
   });
 }
 
-/* ============================================================= separadores */
-function sprigMarkup() {
-  const cx = 45, cy = 13, hojas = [];
-  for (let i = -3; i <= 3; i++) {
-    if (!i) continue;
-    const x = cx + i * 11, s = 1 - Math.abs(i) * .17;
-    hojas.push(`<ellipse class="lf" cx="${x}" cy="${cy + (i % 2 ? -4.5 : 4.5) * s}"
-      rx="${7.5 * s}" ry="${3.8 * s}" transform="rotate(${i % 2 ? -26 : 26} ${x} ${cy})"/>`);
-  }
-  return `<span class="sprig__l"></span>
-    <svg class="sprig__o" viewBox="0 0 90 26" fill="currentColor" aria-hidden="true">
-      <circle class="lf" cx="${cx}" cy="${cy}" r="2.6"/>${hojas.join('')}</svg>
-    <span class="sprig__l"></span>`;
+/* El papel pintado: dos hojas cruzadas repetidas en una baldosa que se
+   pone de fondo (--wall). Verde muy oscuro sobre negro, apenas se nota.    */
+function wallpaper() {
+  const W = 480;
+  const leaf = (x, y, r, k) => [-W, 0, W].flatMap(dx => [-W, 0, W].map(dy =>
+    `<g transform="translate(${x + dx} ${y + dy}) rotate(${r}) scale(${k}) translate(-75 -260)">${frond({ n: 11 })}</g>`)).join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${W}" viewBox="0 0 ${W} ${W}"><g fill="#2c5237" fill-opacity=".3" stroke="#2c5237" stroke-opacity=".3">
+    ${leaf(130, 280, -28, 1.05)}${leaf(350, 460, 36, 1.15)}${leaf(400, 120, 160, .85)}${leaf(40, 60, 200, .8)}</g></svg>`;
+  document.documentElement.style.setProperty('--wall', `url("data:image/svg+xml,${encodeURIComponent(svg)}")`);
 }
 
-function sprigs() {
-  $$('.sprig').forEach(el => {
+/* ============================================================ luz y papel */
+/* Bombillas colgantes del techo: cada spec es {x (%), len (px), t, d, a} */
+function lamps(host, specs) {
+  if (!host) return;
+  host.insertAdjacentHTML('beforeend', specs.map(s => `
+    <div class="lamp ${s.c || ''}" aria-hidden="true" style="left:${s.x}%;--len:${s.len}px;--t:${s.t || 6}s;--d:${s.d || 0}s;--a:${s.a || 2.4}deg">
+      <i class="lamp__cord"></i><span class="lamp__cap"></span><span class="lamp__halo"></span><span class="lamp__globe" style="animation-delay:${(s.d || 0) * 2.1}s"></span>
+    </div>`).join(''));
+}
+
+/* La guirnalda de estrellas que cuelga del techo del local */
+function fairy(host) {
+  if (!host) return;
+  const star = (x, y, r) => `<polygon class="star" style="animation-delay:${(Math.random() * 3).toFixed(2)}s" points="${
+    [0, 1, 2, 3, 4, 5, 6, 7].map(i => { const a = i * Math.PI / 4 - Math.PI / 2, d = i % 2 ? r * .38 : r; return `${(x + Math.cos(a) * d).toFixed(1)},${(y + Math.sin(a) * d).toFixed(1)}`; }).join(' ')}"/>`;
+  const hang = [[.05, 46], [.13, 78], [.22, 52], [.31, 92], [.41, 60], [.5, 84], [.6, 50], [.69, 96], [.79, 62], [.88, 80], [.96, 48]];
+  const W = 1000, wire = x => 18 + Math.sin(x / W * Math.PI * 3.2) * 10;
+  host.innerHTML = `<svg viewBox="0 0 ${W} 150" preserveAspectRatio="none" aria-hidden="true">
+    <path class="wire" d="M0 ${wire(0)} ${Array.from({ length: 41 }, (_, i) => `L${i * 25} ${wire(i * 25)}`).join(' ')}"/>
+    ${hang.map(([p, l]) => { const x = p * W, y = wire(x); return `<line class="str" x1="${x}" y1="${y}" x2="${x}" y2="${y + l}"/>${star(x, y + l + 8, 9)}`; }).join('')}</svg>`;
+}
+
+/* Separador a tiza: se traza al llegar y brilla una estrella en medio */
+function chalkMarkup() {
+  return `<svg viewBox="0 0 240 18" aria-hidden="true">
+    <path class="l l1" d="M2 10 C 26 4, 50 15, 84 9 S 100 9, 100 9"/>
+    <path class="st" d="M120 1 L122.8 7 L129 9 L122.8 11 L120 17 L117.2 11 L111 9 L117.2 7Z"/>
+    <path class="l l2" d="M140 9 S 140 9, 156 9 C 190 15, 214 4, 238 10"/></svg>`;
+}
+function chalks() {
+  $$('.chalk').forEach(el => {
     if (el.dataset.built) return;
     el.dataset.built = '1';
-    el.innerHTML = sprigMarkup();
+    el.innerHTML = chalkMarkup();
     if (!GS || REDUCED) return;
-
-    const [l1, l2] = $$('.sprig__l', el);
-    const hojas = $$('.lf', el);
-    gsap.set(l1, { scaleX: 0, transformOrigin: 'left center' });
-    gsap.set(l2, { scaleX: 0, transformOrigin: 'right center' });
-    gsap.set(hojas, { scale: 0, opacity: 0, transformOrigin: '50% 50%' });
-
+    const ls = $$('path.l', el), st = $('.st', el);
+    ls.forEach(p => { const L = p.getTotalLength(); gsap.set(p, { strokeDasharray: L, strokeDashoffset: L }); });
+    gsap.set(st, { scale: 0, opacity: 0 });
     onView(el, () => {
-      gsap.to([l1, l2], { scaleX: 1, duration: 1.1, ease: 'power2.inOut' });
-      gsap.to(hojas, { scale: 1, opacity: 1, duration: .55, stagger: .05, ease: 'back.out(2.4)', delay: .35 });
+      gsap.to(ls, { strokeDashoffset: 0, duration: 1, ease: 'power2.inOut' });
+      gsap.to(st, { scale: 1, opacity: 1, duration: .6, ease: 'back.out(3)', delay: .45 });
     });
   });
 }
@@ -153,14 +146,11 @@ function words() {
     if (!GS || REDUCED) return;
     const inner = $$('.w > span', h);
     gsap.set(inner, { yPercent: 115 });
-    onView(h, () => gsap.to(inner, { yPercent: 0, duration: 1.05, ease: 'power4.out', stagger: .07 }));
+    onView(h, () => gsap.to(inner, { yPercent: 0, duration: 1.05, ease: 'power4.out', stagger: .08 }));
   });
 }
 
-/* La hojita del antetítulo gira al aparecer (transición en CSS) */
-function eyebrows() {
-  $$('.eyebrow').forEach(e => onView(e, () => e.classList.add('in')));
-}
+function eyebrows() { $$('.eyebrow').forEach(e => onView(e, () => e.classList.add('in'))); }
 
 function reveals() {
   if (!GS || REDUCED) return;
@@ -173,58 +163,40 @@ function reveals() {
 /* Fotos y vídeos se destapan de abajo arriba */
 function mediaReveal() {
   if (!GS || REDUCED) return;
-  $$('.about__media, .reel, .shoplink__v, .shophero__v').forEach((el, i) => {
+  $$('.shoplink__v, .shophero__v, .collage__a, .collage__b, .collage__c, .contact__ph img').forEach((el, i) => {
     const m = $('video, img', el);
     gsap.set(el, { clipPath: 'inset(100% 0% 0% 0%)' });
-    if (m) gsap.set(m, { scale: 1.22 });
+    if (m) gsap.set(m, { scale: 1.2 });
     onView(el, () => {
-      gsap.to(el, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.25, ease: 'power4.inOut',
-                    delay: el.classList.contains('reel') ? (i % 3) * .12 : 0 });
-      if (m) gsap.to(m, { scale: 1, duration: 1.7, ease: 'power3.out', clearProps: 'transform' });
+      gsap.to(el, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.2, ease: 'power4.inOut', delay: (i % 3) * .1, clearProps: 'clipPath' });
+      if (m) gsap.to(m, { scale: 1, duration: 1.6, ease: 'power3.out', clearProps: 'transform' });
     });
   });
 }
 
-/* Botones imantados: se acercan un poco al cursor */
-function magnetic() {
-  if (!GS || REDUCED || !FINE) return;
-  $$('.btn, .c3d__arrow, .cartbtn, .burger, .reel__sound, .nav__logo').forEach(el => {
-    if (el.dataset.mag) return;
-    el.dataset.mag = '1';
-    const fuerza = el.classList.contains('btn') ? .28 : .38;
-    const xTo = gsap.quickTo(el, 'x', { duration: .45, ease: 'power3' });
-    const yTo = gsap.quickTo(el, 'y', { duration: .45, ease: 'power3' });
-    el.addEventListener('pointermove', e => {
-      const r = el.getBoundingClientRect();
-      xTo((e.clientX - (r.left + r.width / 2)) * fuerza);
-      yTo((e.clientY - (r.top + r.height / 2)) * fuerza);
-    });
-    el.addEventListener('pointerleave', () =>
-      gsap.to(el, { x: 0, y: 0, duration: .8, ease: 'elastic.out(1,.4)' }));
-  });
-}
-
-/* Un tallo arriba del todo que crece con el scroll; la hoja va girando */
-function vine() {
-  if ($('.vine')) return;
-  const v = document.createElement('div');
-  v.className = 'vine';
-  v.setAttribute('aria-hidden', 'true');
-  v.innerHTML = '<i></i><b></b>';
-  document.body.appendChild(v);
-  const [barra, hoja] = [v.firstChild, v.lastChild];
+/* El cable de la bombilla: una línea ámbar que avanza con el scroll */
+function progress() {
+  const bar = $('#progress i');
+  if (!bar) return;
   let raf = 0;
   const pinta = () => {
     raf = 0;
     const max = document.documentElement.scrollHeight - innerHeight;
-    const p = max > 0 ? Math.min(1, scrollY / max) : 0;
-    barra.style.transform = `scaleX(${p})`;
-    hoja.style.transform = `translateX(${p * innerWidth - 7}px) rotate(${40 + p * 320}deg)`;
-    hoja.style.opacity = p > .005 ? 1 : 0;
+    bar.style.transform = `scaleX(${max > 0 ? Math.min(1, scrollY / max) : 0})`;
   };
   addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(pinta); }, { passive: true });
   addEventListener('resize', pinta);
   pinta();
+}
+
+/* Los vídeos solo corren mientras se ven */
+function videos() {
+  const vs = $$('video[autoplay]');
+  if (!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) e.target.play().catch(() => {}); else e.target.pause();
+  }), { threshold: .12 });
+  vs.forEach(v => io.observe(v));
 }
 
 /* ================================================================ contacto */
@@ -241,6 +213,22 @@ function fillContact() {
   set('[data-yr]',   e => e.textContent = new Date().getFullYear());
 }
 
+/* «Abierto ahora» según la hora de Alicante */
+function estado() {
+  const el = $('#status');
+  if (!el) return;
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false })
+    .formatToParts(new Date()).map(x => [x.type, x.value]));
+  const dom = p.weekday === 'Sun', hh = (+p.hour % 24) + (+p.minute) / 60;
+  const [a, c] = dom ? CONFIG.abre.dom : CONFIG.abre.semana;
+  const f = n => String(n).padStart(2, '0') + ':00';
+  const abierto = hh >= a && hh < c;
+  el.className = 'status ' + (abierto ? 'open' : 'closed');
+  $('span', el).textContent = abierto
+    ? `Abierto ahora · hasta las ${f(c)}`
+    : (hh < a ? `Abrimos hoy a las ${f(a)}` : `Cerrado · abrimos ${p.weekday === 'Sat' ? 'el domingo' : 'mañana'} a las ${f(p.weekday === 'Sat' ? CONFIG.abre.dom[0] : CONFIG.abre.semana[0])}`);
+}
+
 /* ================================================================== navbar */
 function nav() {
   const bar = $('#nav'), burger = $('#burger'), menu = $('#menu');
@@ -250,12 +238,12 @@ function nav() {
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
 
-  /* El menú también tiene sus helechos, que crecen cada vez que se abre */
+  if (!menu || !burger) return;
   foliage(menu, [
-    { css: 'bottom:-6%;right:2%;width:min(34vw,300px);transform:rotate(-8deg)', n: 16 },
-    { css: 'top:6%;right:24%;width:min(16vw,150px);transform:rotate(198deg)', n: 11 }
+    { css: 'bottom:-6%;right:-2%;width:min(34vw,300px);transform:rotate(-12deg)', n: 14 },
+    { css: 'top:4%;right:26%;width:min(16vw,150px);transform:rotate(190deg)', n: 10 }
   ]);
-  const helechosMenu = $$('.foliage svg', menu);
+  $$('.foliage svg', menu).forEach(s => sway(s, 3));
 
   const toggle = force => {
     const open = force ?? !menu.classList.contains('open');
@@ -263,9 +251,8 @@ function nav() {
     burger.classList.toggle('open', open);
     burger.setAttribute('aria-expanded', String(open));
     document.body.classList.toggle('no-scroll', open);
-    if (open && GS && !REDUCED) helechosMenu.forEach((s, i) => {
-      prepFern(s); growFern(s, { delay: .25 + i * .15, speed: .8 });
-    });
+    if (open && GS && !REDUCED) gsap.fromTo($$('.menu__list li, .menu__foot > *', menu),
+      { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: .7, stagger: .05, ease: 'power3.out', delay: .25 });
   };
   burger.addEventListener('click', () => toggle());
   $$('#menu a').forEach(a => a.addEventListener('click', () => toggle(false)));
@@ -274,7 +261,8 @@ function nav() {
   });
 }
 
-/* ==================================================== ilustraciones tienda */
+/* ==================================================== ilustraciones tienda
+   Dibujos a tiza para lo que aún no tiene foto.                            */
 const BOMBILLA = '<path d="M70 58L88 22"/><path d="M88 22l5-9"/>';
 const DRAW = {
   calabaza:  `<ellipse cx="58" cy="58" rx="28" ry="9"/><path d="M30 58c0 17 2 32 8 44s13 18 20 18 14-6 20-18 8-27 8-44"/>${BOMBILLA}`,
@@ -298,8 +286,9 @@ const DRAW = {
 };
 const svgFor = g => `
   <svg viewBox="0 0 120 160" role="img" aria-hidden="true" fill="none"
-       stroke="rgba(71,90,69,.82)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-    <rect width="120" height="160" fill="#E4E9DB" stroke="none"/>${DRAW[g] || DRAW.caja}</svg>`;
+       stroke="rgba(245,176,76,.85)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <rect width="120" height="160" fill="#23211e" stroke="none"/>
+    <g style="filter:url(#rough)">${DRAW[g] || DRAW.caja}</g></svg>`;
 
 /* ================================================================= carrito
    Vive en localStorage: la portada y la tienda ven lo mismo.               */
@@ -333,20 +322,22 @@ const waLink = txt => `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponen
 
 /* ================================================================ arranque */
 function boot() {
+  wallpaper();
   fillContact();
+  estado();
   nav();
-  sprigs();
+  chalks();
   words();
   eyebrows();
   reveals();
   mediaReveal();
   animarFoliage();
-  magnetic();
-  vine();
+  progress();
+  videos();
   badge();
   addEventListener('load', () => window.ScrollTrigger?.refresh());
 }
 
-return { $, $$, REDUCED, FINE, GS, eur, onView, fern, fernSvg, foliage, prepFern, growFern, sway,
-         sprigs, magnetic, svgFor, cart, save, byId, units, subtotal, badge, toast, waLink, boot };
+return { $, $$, REDUCED, FINE, GS, eur, onView, frond, foliage, sway, lamps, fairy, chalks,
+         svgFor, cart, save, byId, units, subtotal, badge, toast, waLink, boot };
 })();

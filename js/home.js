@@ -3,36 +3,39 @@
    ========================================================================= */
 (() => {
 'use strict';
-const { $, $$, REDUCED, GS, onView, fernSvg, foliage, prepFern, growFern, sway } = LP;
+const { $, $$, REDUCED, GS, onView, foliage, lamps, fairy } = LP;
 
-/* ------------------------------------------------------------ las plantas */
-function plantar() {
-  $('#heroFrame').innerHTML =
-    fernSvg('f1', { n: 16 }) + fernSvg('f2', { n: 15 }) +
-    fernSvg('f3', { n: 11 }) + fernSvg('f4', { n: 10 });
+/* ------------------------------------------------- luces, plantas y pizarra */
+function ambientar() {
+  fairy($('#fairy'));
+
+  /* Tres bombillas colgando sobre el vídeo, a distinta altura */
+  lamps($('#hero'), [
+    { x: 56, len: 70,  t: 6.4, d: 0,   a: 2.6, c: 'lamp--d' },
+    { x: 70, len: 150, t: 5.6, d: -1.4, a: 2.2, c: 'lamp--d' },
+    { x: 88, len: 96,  t: 7.2, d: -3,   a: 2.8 }
+  ]);
 
   const sitios = [
-    ['#nosotros', [{ css: 'top:-4%;right:-3%;width:240px;transform:rotate(168deg)', n: 14 },
-                   { css: 'bottom:-6%;left:-4%;width:180px;transform:rotate(12deg)', n: 12 }]],
-    ['#carta',    [{ css: 'top:4%;left:-5%;width:210px;transform:rotate(-14deg)', n: 13 },
-                   { css: 'bottom:-6%;right:-3%;width:260px;transform:rotate(172deg)', n: 15 }]],
-    ['#vitrina',  [{ css: 'top:-6%;right:6%;width:200px;transform:rotate(190deg)', n: 13 },
-                   { css: 'bottom:-8%;left:-3%;width:220px;transform:rotate(-6deg)', n: 14 }]],
-    ['#resenas',  [{ css: 'bottom:-8%;left:-4%;width:240px;transform:rotate(18deg)', n: 14 },
-                   { css: 'top:-4%;right:-4%;width:200px;transform:rotate(160deg)', n: 13 }]],
-    ['#redes',    [{ css: 'top:-5%;left:-3%;width:200px;transform:rotate(-170deg)', n: 12 },
-                   { css: 'bottom:-6%;right:-4%;width:230px;transform:rotate(6deg)', n: 14 }]],
-    ['#latienda', [{ css: 'top:-4%;left:-4%;width:220px;transform:rotate(-10deg)', n: 14 }]],
-    ['#contacto', [{ css: 'bottom:-7%;right:-4%;width:240px;transform:rotate(174deg)', n: 14 },
-                   { css: 'top:2%;left:-4%;width:170px;transform:rotate(-20deg)', n: 11 }]]
+    ['#hero',     [{ css: 'bottom:-10%;left:-4%;width:230px;transform:rotate(14deg)', n: 13 }]],
+    ['#nosotros', [{ css: 'top:-6%;right:-3%;width:240px;transform:rotate(168deg)', n: 14 },
+                   { css: 'bottom:-8%;left:-4%;width:200px;transform:rotate(10deg)', n: 12 }]],
+    ['#redes',    [{ css: 'top:-6%;left:-3%;width:210px;transform:rotate(-170deg)', n: 12 },
+                   { css: 'bottom:-8%;right:-4%;width:240px;transform:rotate(8deg)', n: 14 }]],
+    ['#contacto', [{ css: 'bottom:-9%;right:-3%;width:250px;transform:rotate(174deg)', n: 14 }]]
   ];
   sitios.forEach(([sel, specs]) => foliage($(sel), specs));
+
 }
 
-/* =================================================== INTRO: crece un brote
-   Se dibuja el suelo, sube el tallo, se abren las hojas de abajo arriba y
-   en la punta brota el nombre. Después la pantalla se levanta.
-   Solo la primera vez por sesión; se salta tocando.                       */
+function promos() {
+  $('#promos').innerHTML = PROMOS.map(p => `<li>${p.t}<span>${p.p}</span></li>`).join('');
+}
+
+/* ============================================ INTRO: se enciende la bombilla
+   Cae una bombilla del techo, parpadea y se enciende; su luz escribe el
+   nombre y se abre como un círculo que deja ver la web.
+   Solo la primera vez por sesión; se salta tocando.                         */
 function intro() {
   return new Promise(resolve => {
     const el = $('#intro'), html = document.documentElement;
@@ -42,18 +45,17 @@ function intro() {
       hecho = true; el?.remove(); html.classList.remove('intro-on'); resolve();
     };
     window.__lpIntro = true;          // el seguro del <head> ya no hace falta
-    if (!el || html.classList.contains('intro-skip') || REDUCED || !GS) { fin(); return; }
-    html.classList.add('intro-on');
+    if (!el || !html.classList.contains('intro-on') || REDUCED || !GS) { fin(); return; }
 
-    const saltar = () => { tl ? tl.progress(1) : fin(); };
+    const saltar = () => { if (tl) tl.progress(1); else fin(); };
     el.addEventListener('click', saltar);
     addEventListener('keydown', saltar, { once: true });
 
-    /* Si la página se abrió en una pestaña de fondo, el navegador congela
-       las animaciones: esperamos a que la miren para que no se la pierdan. */
+    /* Si la página se abrió en una pestaña de fondo, el navegador congela las
+       animaciones: esperamos a que la miren para que no se la pierdan.        */
     const empezar = () => {
       try { sessionStorage.setItem('lp.intro', '1'); } catch {}
-      tl = crecer(el, html, resolve, () => { hecho = true; });
+      tl = encender(el, fin, resolve);
     };
     if (!document.hidden) { empezar(); return; }
     const alVer = () => {
@@ -65,90 +67,66 @@ function intro() {
   });
 }
 
-function crecer(el, html, resolve, marcar) {
-    const svg = $('#introPlant');
-    const suelo = $('.intro__suelo', svg), tallo = $('.intro__tallo', svg);
-    const L = tallo.getTotalLength();
-    const HOJA = 'M0 0 C 12 -17 40 -19 54 -2 C 40 11 14 11 0 0 Z';
+function encender(el, fin, resolve) {
+  const lampara = $('#introLamp'), nombre = $('#introName'), sub = $('#introSub'), skip = $('.intro__skip', el);
+  lampara.classList.add('off');
+  gsap.set(lampara, { y: '-70vh' });
+  gsap.set(nombre, { clipPath: 'inset(-20% 100% -30% -10%)', opacity: 1 });
+  gsap.set([sub, skip], { opacity: 0, y: 10 });
 
-    const piezas = [.2, .33, .46, .58, .7, .81].map((t, k) => {
-      const p = tallo.getPointAtLength(t * L);
-      const lado = k % 2 ? 1 : -1, s = 1.15 - k * .1;
-      return `<g transform="translate(${p.x} ${p.y}) rotate(${lado > 0 ? -32 : 32}) scale(${lado * s} ${s})">
-        <g class="intro__h"><path fill="url(#introG)" d="${HOJA}"/><path class="intro__vena" d="M3 -1 Q 28 -6 48 -3"/></g></g>`;
-    });
-    const punta = tallo.getPointAtLength(L);
-    [-1, 1].forEach(lado => piezas.push(
-      `<g transform="translate(${punta.x} ${punta.y}) rotate(${lado > 0 ? -62 : 62}) scale(${lado * .78} .78)">
-        <g class="intro__h intro__brote"><path fill="url(#introG)" d="${HOJA}"/></g></g>`));
-    $('.intro__hojas', svg).innerHTML = piezas.join('');
+  const luz = on => () => lampara.classList.toggle('off', !on);
+  let abierto = false;
+  const abrir = () => { if (abierto) return; abierto = true; setTimeout(resolve, 350); };
 
-    const hojas  = $$('.intro__h:not(.intro__brote)', svg);
-    const brotes = $$('.intro__brote', svg);
-    const textos = ['.intro__name', '.intro__sub', '.intro__skip'].map(s => $(s, el));
-
-    [suelo, tallo].forEach(p => { const l = p.getTotalLength(); gsap.set(p, { strokeDasharray: l, strokeDashoffset: l }); });
-    gsap.set([...hojas, ...brotes], { scale: 0, transformOrigin: '0% 50%' });
-    gsap.set(textos, { opacity: 0, y: 14 });
-    el.classList.add('vivo');
-
-    let saliendo = false;
-    const salir = () => {
-      if (saliendo) return;
-      saliendo = true;
-      marcar();
-      setTimeout(resolve, 450);                  // el hero empieza bajo la cortina
-      gsap.timeline({ onComplete: () => { el.remove(); html.classList.remove('intro-on'); } })
-        .to(svg, { y: -46, opacity: 0, duration: .6, ease: 'power2.in' })
-        .to(textos, { opacity: 0, y: -18, duration: .4, stagger: .04 }, '<')
-        .to(el, { clipPath: 'inset(0% 0% 100% 0%)', duration: 1, ease: 'power4.inOut' }, '-=.25');
-    };
-
-    return gsap.timeline({ onComplete: salir })
-      .to(suelo, { strokeDashoffset: 0, duration: .5, ease: 'power2.out' })
-      .to(tallo, { strokeDashoffset: 0, duration: 1.15, ease: 'power2.inOut' }, '-=.15')
-      .to(hojas, { scale: 1, duration: .6, ease: 'back.out(2)', stagger: .13 }, '-=.85')
-      .to(brotes, { scale: 1, duration: .55, ease: 'back.out(3)', stagger: .08 }, '-=.2')
-      .to(textos[0], { opacity: 1, y: 0, duration: .6, ease: 'power3.out' }, '-=.35')
-      .to(textos[1], { opacity: 1, y: 0, duration: .5 }, '-=.35')
-      .to(textos[2], { opacity: .8, y: 0, duration: .4 }, '<')
-      .to({}, { duration: .45 });
+  return gsap.timeline({ onComplete: fin })
+    .to(lampara, { y: 0, duration: 1.1, ease: 'bounce.out' })
+    .to(lampara, { rotation: 2.4, duration: .5, ease: 'sine.inOut', yoyo: true, repeat: 3, transformOrigin: '50% 0' }, '<.4')
+    .call(luz(true), null, 1.15).call(luz(false), null, 1.25).call(luz(true), null, 1.34)
+    .call(luz(false), null, 1.42).call(luz(true), null, 1.52)
+    .to(nombre, { clipPath: 'inset(-20% -10% -30% -10%)', duration: 1.3, ease: 'power2.inOut' }, 1.6)
+    .to(sub, { opacity: 1, y: 0, duration: .6 }, 2.3)
+    .to(skip, { opacity: .8, y: 0, duration: .5 }, 2.3)
+    .to({}, { duration: .5 })
+    .call(abrir)
+    .to(el, { '--r': '1900px', duration: 1.3, ease: 'power2.in' })
+    .to([nombre, sub, skip], { opacity: 0, duration: .4 }, '<');
 }
 
 /* ------------------------------------------------------------------ hero */
 function hero() {
-  const h1 = $('#heroTitle');
-  h1.innerHTML = [...h1.textContent.trim()]
-    .map(c => c === ' ' ? '<span class="ch">&nbsp;</span>' : `<span class="ch">${c}</span>`).join('');
-
-  const helechos = $$('#heroFrame svg');
   if (!GS || REDUCED) return () => {};
 
-  const piezas = ['#heroMark', '.ch', '.hero__sub', '#heroChalk', '#heroCta .btn', '.promo', '.scrollcue'];
-  helechos.forEach(prepFern);
+  const piezas = ['#status', '#heroSub', '#heroChalk', '#heroLede', '#heroCta .btn', '.scrollcue'];
   gsap.set(piezas, { opacity: 0 });
+  gsap.set('#heroTitle', { clipPath: 'inset(-20% 100% -30% -10%)' });
+  gsap.set('#heroVideo', { clipPath: 'inset(100% 0% 0% 0%)' });
+  gsap.set('#heroVideo video', { scale: 1.25 });
+  gsap.set('#board', { opacity: 0 });
+  gsap.set('#hero .lamp', { opacity: 0 });
+  gsap.set('#fairy', { opacity: 0 });
 
-  /* parallax: el vídeo se aleja y los helechos se separan al bajar */
+  /* parallax: el vídeo y la pizarra se separan un poco al bajar */
   const st = { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true };
-  gsap.to('.hero__bg', { yPercent: 14, ease: 'none', scrollTrigger: st });
-  helechos.forEach((s, i) => gsap.to(s, { yPercent: i % 2 ? 16 : -16, ease: 'none', scrollTrigger: { ...st } }));
+  gsap.to('#heroStage', { yPercent: 8, ease: 'none', scrollTrigger: st });
+  gsap.to('.hero__copy', { yPercent: -6, ease: 'none', scrollTrigger: st });
 
   return () => {
-    helechos.forEach((s, i) => { growFern(s, { delay: i * .16, speed: 1.15 }); sway(s, 2.8); });
-    gsap.timeline({ defaults: { ease: 'power3.out' }, delay: .3 })
-      .fromTo('#heroMark', { scale: .4, rotate: -30, opacity: 0 }, { scale: 1, rotate: 0, opacity: 1, duration: 1 })
-      .fromTo('.ch', { yPercent: 115, opacity: 0 }, { yPercent: 0, opacity: 1, duration: .9, stagger: .035 }, '-=.6')
-      .fromTo('.hero__sub', { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: .7 }, '-=.45')
-      .fromTo('#heroChalk', { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: .8 }, '-=.4')
-      .fromTo('#heroCta .btn', { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: .6, stagger: .1 }, '-=.45')
-      .fromTo('.promo', { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: .5, stagger: .08 }, '-=.3')
-      .to('.scrollcue', { opacity: 1, duration: .6 }, '-=.3');
+    gsap.timeline({ defaults: { ease: 'power3.out' }, delay: .15 })
+      .to('#fairy', { opacity: 1, duration: 1.4 })
+      .to('#hero .lamp', { opacity: 1, duration: 1.4, stagger: .22 }, '<')
+      .to('#status', { opacity: 1, y: 0, duration: .7 }, .1)
+      .to('#heroTitle', { clipPath: 'inset(-20% -10% -30% -10%)', duration: 1.5, ease: 'power2.inOut',
+                          onComplete: () => gsap.set('#heroTitle', { clearProps: 'clipPath' }) }, .25)
+      .fromTo('#heroSub', { y: 14 }, { y: 0, opacity: 1, duration: .8 }, 1.1)
+      .fromTo('#heroChalk', { y: 18, rotation: -5 }, { y: 0, rotation: -1.5, opacity: 1, duration: .9 }, 1.3)
+      .fromTo('#heroLede', { y: 18 }, { y: 0, opacity: 1, duration: .8 }, 1.5)
+      .fromTo('#heroCta .btn', { y: 18 }, { y: 0, opacity: 1, duration: .6, stagger: .1, clearProps: 'transform' }, 1.65)
+      .to('#heroVideo', { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.4, ease: 'power4.inOut',
+                          onComplete: () => gsap.set('#heroVideo', { clearProps: 'clipPath' }) }, .35)
+      .to('#heroVideo video', { scale: 1, duration: 1.9, ease: 'power3.out' }, .35)
+      .fromTo('#board', { y: -260, rotation: -16, opacity: 0 }, { y: 0, rotation: -3.2, opacity: 1, duration: 1.5, ease: 'elastic.out(1,.55)' }, 1.3)
+      .to('.scrollcue', { opacity: 1, duration: .6 }, 2);
   };
-}
-
-function promos() {
-  $('#promos').innerHTML = PROMOS
-    .map(p => `<span class="promo"><b>${p.t}</b><span>${p.p}</span></span>`).join('');
 }
 
 function counters() {
@@ -164,8 +142,8 @@ function counters() {
 }
 
 /* ============================================================== LA CARTA
-   Láminas parejas: las familias largas se parten en varias láminas y las
-   cortas se juntan, para que ninguna sea mucho más alta que las demás.
+   Columnas parejas: las familias largas se parten en varias y las cortas se
+   juntan, para que ninguna sea mucho más alta que las demás.
    En CSS, grid-auto-rows:1fr iguala la altura de todas.                   */
 const MAX_LINEAS = 12, TROZO = 10, CAPACIDAD = 14;
 
@@ -192,6 +170,34 @@ function empaquetar(grupos) {
   return out;
 }
 
+/* Los dibujitos de tiza de la pizarra del local, uno por familia */
+const DOODLES = [
+  [/^caf/i,        '<path d="M5 12h16v5a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6z"/><path d="M21 14h2a3 3 0 0 1 0 6h-2"/><path d="M10 3c-1 2 1 3 0 6M15 3c-1 2 1 3 0 6"/>'],
+  [/^leche/i,      '<path d="M8 6h14l-2 17H10z"/><path d="M9 12h12"/>'],
+  [/^t[eé]$/i,     '<path d="M5 13h16v4a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6z"/><path d="M21 15h2a3 3 0 0 1 0 5h-2"/><path d="M13 13V6l5-2"/>'],
+  [/^tostada/i,    '<path d="M7 24V14a5 5 0 1 1 2-9.6A5 5 0 0 1 20 4a5 5 0 0 1 2 9.6V24z"/>'],
+  [/^boller/i,     '<path d="M3 18c2-8 7-11 11-11s9 3 11 11c-3-2-5-2-7 0-2-2-5-2-8 0-2-2-4-2-7 0z"/><path d="M10 8l2 8M16 8l-1 8M20 11l-3 6"/>'],
+  [/^tarta/i,      '<path d="M3 21l22-6V9L3 6z"/><path d="M3 6l2 15M3 21h22"/><circle cx="19" cy="7" r="2"/>'],
+  [/^empanada/i,   '<path d="M3 21a11 11 0 0 1 22 0z"/><path d="M6 18a8 8 0 0 1 16 0" stroke-dasharray="2 2.6"/>'],
+  [/^bocadillo/i,  '<path d="M3 11a11 6 0 0 1 22 0z"/><path d="M3 15h22M3 19h22"/><path d="M4 22a10 3 0 0 0 20 0"/>'],
+  [/^tapa/i,       '<circle cx="10" cy="10" r="6"/><path d="M15 15l9 9"/><circle cx="10" cy="10" r="2"/>'],
+  [/^panader/i,    '<path d="M4 21c-1-8 3-13 10-13s11 5 10 13z"/><path d="M10 11l-2 5M15 10l-1 6M20 11l-1 5"/>'],
+  [/^refresco/i,   '<path d="M11 3h6v5l2 3v13H9V11l2-3z"/><path d="M9 16h10"/>'],
+  [/^cerveza/i,    '<path d="M6 9h13v14H6z"/><path d="M19 12h3a2 2 0 0 1 0 8h-3"/><path d="M6 9c0-3 4-4 7-2 3-2 6-1 6 2"/>'],
+  [/^vino/i,       '<path d="M8 4h12c0 8-2 11-6 11S8 12 8 4z"/><path d="M14 15v8M9 24h10"/>'],
+  [/^sidra/i,      '<path d="M12 3h4v6l3 4v11H9V13l3-4z"/><path d="M9 17h10"/>'],
+  [/^(aperitivo|licor|gin|vodka|tequila)/i, '<path d="M4 5h20l-10 12z"/><path d="M14 17v7M9 24h10"/>'],
+  [/^whisky/i,     '<path d="M6 7h16l-2 16H8z"/><path d="M7 14h14"/>'],
+  [/^yerba/i,      '<path d="M6 11h16c0 8-3 12-8 12s-8-4-8-12z"/><path d="M18 3l-4 12"/>'],
+  [/^almac/i,      '<path d="M9 5h10v4H9z"/><path d="M7 9h14v14H7z"/><path d="M10 14h8v5h-8z"/>'],
+  [/^alfajor/i,    '<ellipse cx="14" cy="9" rx="10" ry="3.5"/><path d="M4 9v5c0 2 4.5 3.5 10 3.5s10-1.5 10-3.5V9M4 17v3c0 2 4.5 3.5 10 3.5s10-1.5 10-3.5v-3"/>'],
+  [/^galletit/i,   '<rect x="5" y="6" width="18" height="6" rx="2"/><rect x="5" y="15" width="18" height="6" rx="2"/>']
+];
+const doodle = t => {
+  const d = DOODLES.find(([re]) => re.test(t.trim()));
+  return `<svg viewBox="0 0 28 28" aria-hidden="true">${d ? d[1] : '<path d="M14 3l3 8 8 1-6 6 2 8-7-4-7 4 2-8-6-6 8-1z"/>'}</svg>`;
+};
+
 function carta() {
   const tabs = $('#cartaTabs'), grid = $('#cartaGrid');
 
@@ -200,9 +206,7 @@ function carta() {
 
   const parte = p => `
     <div>
-      <header class="lamina__h"><i></i><h3>${p.t}</h3>${p.sub ? `<small>${p.sub}</small>` : ''}</header>
-      <svg class="lamina__r" viewBox="0 0 400 5" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0 3 C 90 1, 150 5, 230 3 S 330 1, 400 3"/></svg>
+      <header class="lamina__h">${doodle(p.t)}<h3>${p.t}</h3>${p.sub ? `<small>${p.sub}</small>` : ''}</header>
       ${p.items.map(([n, pr]) => `
         <div class="plato"><span class="plato__n">${n}</span><span class="plato__d"></span><span class="plato__p">${pr}</span></div>`).join('')}
       ${p.nota ? `<p class="lamina__nota">${p.nota}</p>` : ''}
@@ -212,13 +216,8 @@ function carta() {
     grid.innerHTML = empaquetar(CARTA[i].grupos)
       .map(c => `<article class="lamina">${c.partes.map(parte).join('')}</article>`).join('');
     if (!GS || REDUCED || !animar) return;
-    gsap.from($$('.lamina', grid), { opacity: 0, y: 30, rotationX: -8, transformPerspective: 900,
-      duration: .7, stagger: .05, ease: 'power3.out', clearProps: 'transform' });
-    $$('.lamina__r path', grid).forEach(p => {
-      const L = p.getTotalLength();
-      gsap.fromTo(p, { strokeDasharray: L, strokeDashoffset: L },
-        { strokeDashoffset: 0, duration: .9, ease: 'power2.inOut', delay: .25 });
-    });
+    gsap.from($$('.lamina', grid), { opacity: 0, y: 24, duration: .7, stagger: .06, ease: 'power3.out', clearProps: 'transform,opacity' });
+    gsap.from($$('.plato', grid), { opacity: 0, x: -10, duration: .5, stagger: .012, ease: 'power2.out', clearProps: 'transform,opacity', delay: .15 });
   };
 
   tabs.addEventListener('click', e => {
@@ -231,171 +230,13 @@ function carta() {
   paint(0, false);
   onView(grid, () => {
     if (!GS || REDUCED) return;
-    gsap.from($$('.lamina', grid), { opacity: 0, y: 40, duration: .9, stagger: .07,
-      ease: 'power3.out', clearProps: 'transform' });
+    gsap.from($$('.lamina', grid), { opacity: 0, y: 36, duration: .9, stagger: .08,
+      ease: 'power3.out', clearProps: 'transform,opacity' });
   });
 }
 
-/* =================================================== VITRINA — carrusel 3D
-   Una sola posición continua (st.pos) manda sobre las 14 fotos: GSAP la
-   anima y cada foto calcula su sitio a partir de ella. Así, por mucho que
-   se pulse, ninguna foto puede quedarse a medio camino ni juntarse.
-   Las medidas se toman con offsetWidth, que no cambia con el giro 3D.    */
-const VITRINA = [
-  'Licuado de vainilla', 'Masita recién horneada', 'Croissant de dulce de leche',
-  'Croissants de mantequilla', 'Red velvet', 'Cheesecake de pistacho',
-  'Brownie con coco', 'Fernet, como en Buenos Aires', 'Tartaleta de frutos rojos',
-  'La vitrina a media mañana', 'Croissant de chocolate', 'Chocotorta',
-  'Empanadas argentinas', 'Alfajor de la casa'
-];
-
-function vitrina() {
-  const root = $('#c3d'), stage = $('#c3dStage'), dots = $('#c3dDots'), cap = $('#c3dCap');
-  if (!root) return;
-  const N = VITRINA.length;
-
-  stage.innerHTML = VITRINA.map((t, i) => `
-    <figure class="c3d__item" data-i="${i}">
-      <img src="assets/img/comida/comida-${String(i + 1).padStart(2, '0')}.jpg" alt="${t}"
-           draggable="false" loading="${i < 4 || i > N - 4 ? 'eager' : 'lazy'}">
-    </figure>`).join('');
-  dots.innerHTML = VITRINA.map((_, i) =>
-    `<button class="c3d__dot" data-go="${i}" aria-label="Foto ${i + 1} de ${N}"></button>`).join('');
-
-  const items = $$('.c3d__item', stage);
-  const puntos = $$('.c3d__dot', dots);
-  const st = { pos: GS && !REDUCED ? -6 : 0 };
-  let objetivo = 0, mostrado = -1, sp = 180, dp = 150, tw = null;
-
-  const medir = () => { const w = items[0].offsetWidth || 240; sp = w * .64; dp = w * .55; };
-  const envolver = v => { let o = ((v % N) + N) % N; if (o > N / 2) o -= N; return o; };
-  const indice = v => ((Math.round(v) % N) + N) % N;
-
-  function colocar(el, o) {
-    if (GS) { gsap.set(el, o); return; }
-    el.style.transform = `translate(-50%,-50%) translate3d(${o.x}px,0,${o.z}px) rotateY(${o.rotationY}deg) scale(${o.scale})`;
-    el.style.opacity = o.opacity; el.style.zIndex = o.zIndex;
-  }
-
-  function render() {
-    items.forEach((el, i) => {
-      const off = envolver(i - st.pos), a = Math.abs(off), s = Math.sign(off);
-      const a1 = Math.min(a, 1), a2 = Math.max(0, a - 1);
-      const op = a <= 3 ? 1 - a2 * .22 : Math.max(0, .56 * (1 - (a - 3) / .6));
-      colocar(el, {
-        xPercent: -50, yPercent: -50,
-        x: s * (a1 * sp * 1.05 + a2 * sp * .62),
-        z: -(a1 * dp + a2 * dp * .55),
-        rotationY: -s * (a1 * 44 + a2 * 6),
-        scale: 1 - a1 * .06 - a2 * .06,
-        opacity: op, zIndex: Math.round(100 - a * 10)
-      });
-      el.classList.toggle('dim', a > .5);
-      el.style.visibility = op < .01 ? 'hidden' : 'visible';
-      el.style.pointerEvents = a < 3.2 ? 'auto' : 'none';
-    });
-
-    const actual = indice(st.pos);
-    if (actual === mostrado) return;
-    mostrado = actual;
-    puntos.forEach((d, i) => d.classList.toggle('on', i === actual));
-    cap.textContent = VITRINA[actual];
-    if (GS && !REDUCED) gsap.fromTo(cap, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: .45, overwrite: true });
-  }
-
-  function irA(destino, dur = .95) {
-    objetivo = destino;
-    tw?.kill();
-    if (!GS || REDUCED) { st.pos = destino; render(); return; }
-    tw = gsap.to(st, { pos: destino, duration: dur, ease: 'power3.out', onUpdate: render });
-  }
-  const paso   = d => irA(objetivo + d);
-  const saltaA = i => irA(objetivo + envolver(i - objetivo));
-
-  $('#c3dPrev').addEventListener('click', () => { paso(-1); pausa(); });
-  $('#c3dNext').addEventListener('click', () => { paso(1); pausa(); });
-  dots.addEventListener('click', e => {
-    const b = e.target.closest('[data-go]'); if (b) { saltaA(+b.dataset.go); pausa(); }
-  });
-
-  /* Arrastre continuo: la cinta sigue al dedo y al soltar se asienta,
-     con algo de inercia si el gesto fue rápido.                          */
-  /* Sin setPointerCapture: así un toque corto sigue llegando a la foto */
-  let abajo = false, x0 = 0, base = 0, arrastrado = false, ultX = 0, ultT = 0, vel = 0;
-  const mover = e => {
-    if (!abajo) return;
-    const dx = e.clientX - x0;
-    if (Math.abs(dx) > 6) arrastrado = true;
-    const t = performance.now();
-    vel = (e.clientX - ultX) / Math.max(1, t - ultT);
-    ultX = e.clientX; ultT = t;
-    st.pos = base - dx / (sp * 1.05);
-    render();
-  };
-  const soltar = () => {
-    if (!abajo) return;
-    abajo = false; root.classList.remove('drag');
-    removeEventListener('pointermove', mover);
-    removeEventListener('pointerup', soltar);
-    removeEventListener('pointercancel', soltar);
-    if (!arrastrado) { irA(objetivo, .4); return; }
-    const empuje = Math.max(-2, Math.min(2, -vel * 160 / sp));
-    irA(Math.round(st.pos + empuje), .8);
-    pausa();
-  };
-  root.addEventListener('pointerdown', e => {
-    if (e.button && e.button !== 0) return;
-    abajo = true; arrastrado = false; x0 = ultX = e.clientX; ultT = performance.now(); vel = 0;
-    tw?.kill(); base = st.pos; root.classList.add('drag'); detener();
-    addEventListener('pointermove', mover);
-    addEventListener('pointerup', soltar);
-    addEventListener('pointercancel', soltar);
-  });
-
-  /* Un toque (sin arrastre) en una foto lateral la trae al centro */
-  stage.addEventListener('click', e => {
-    if (arrastrado) return;
-    const f = e.target.closest('.c3d__item'); if (!f) return;
-    const i = +f.dataset.i;
-    if (i !== indice(objetivo)) { saltaA(i); pausa(); }
-  });
-
-  root.tabIndex = 0;
-  root.addEventListener('keydown', e => {
-    if (e.key === 'ArrowLeft')  { e.preventDefault(); paso(-1); pausa(); }
-    if (e.key === 'ArrowRight') { e.preventDefault(); paso(1); pausa(); }
-  });
-
-  /* Pasa sola; se para al tocarla y cuando no está a la vista */
-  let auto = null, visible = false;
-  function arrancar() { if (REDUCED || auto || !visible) return; auto = setInterval(() => paso(1), 4600); }
-  function detener()  { clearInterval(auto); auto = null; }
-  function pausa()    { detener(); clearTimeout(window.__v3); window.__v3 = setTimeout(arrancar, 6000); }
-  root.addEventListener('pointerenter', detener);
-  root.addEventListener('pointerleave', () => { if (!abajo) pausa(); });
-  new IntersectionObserver(es => es.forEach(e => {
-    visible = e.isIntersecting; visible ? arrancar() : detener();
-  }), { threshold: .3 }).observe(root);
-
-  addEventListener('resize', () => { clearTimeout(window.__v3r); window.__v3r = setTimeout(() => { medir(); render(); }, 150); });
-
-  medir();
-  render();
-
-  /* Entrada: la cinta llega girando y las fotos se revelan */
-  if (GS && !REDUCED) {
-    const imgs = $$('img', stage);
-    gsap.set(imgs, { opacity: 0, scale: 1.3 });
-    onView(root, () => {
-      irA(0, 1.9);
-      gsap.to(imgs, { opacity: 1, scale: 1, duration: 1.2, stagger: { each: .04, from: 'center' }, ease: 'power3.out' });
-    });
-  }
-}
-
-/* ====================================================== RESEÑAS — hojas
-   Cada reseña es una hoja que brota del tallo, se mece sola y reacciona
-   al pasar el ratón.                                                     */
+/* ============================================================ RESEÑAS
+   Cada reseña es una comanda de papel clavada en el tablón.               */
 function resenas() {
   const r = CONFIG.rating;
   $('#revScore').textContent = r.toLocaleString('es-ES', { minimumFractionDigits: 1 });
@@ -404,7 +245,7 @@ function resenas() {
   $('#revStars').innerHTML = [0, 1, 2, 3, 4].map(i => {
     const pc = Math.max(0, Math.min(1, r - i)) * 100;
     return `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="g${i}">
-      <stop offset="${pc}%" stop-color="#E0A758"/><stop offset="${pc}%" stop-color="rgba(241,238,228,.22)"/>
+      <stop offset="${pc}%" stop-color="#F5B04C"/><stop offset="${pc}%" stop-color="rgba(242,237,227,.2)"/>
       </linearGradient></defs><path fill="url(#g${i})" d="${STAR}"/></svg>`;
   }).join('');
   $('#revCount').textContent = CONFIG.resenas.toLocaleString('es-ES');
@@ -420,13 +261,13 @@ function resenas() {
       <path vector-effect="non-scaling-stroke" d="M40 0 C 12 120, 68 240, 40 360 S 12 600, 40 720 S 68 900, 40 1000"/>
     </svg>` +
     RESENAS.map((q, i) => `
-      <blockquote class="hoja${i % 2 === 0 ? ' hoja--izq' : ''}">
+      <blockquote class="hoja ${i % 2 === 0 ? 'hoja--izq' : 'hoja--der'}">
         <div class="hoja__in">
           <div class="hoja__s" aria-label="${q.e || 5} de 5 estrellas">
             ${`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${STAR}"/></svg>`.repeat(q.e || 5)}
           </div>
           <p>${q.t}</p>
-          <footer><b aria-hidden="true">${q.a.trim()[0].toUpperCase()}</b><span>${q.a} · en Google</span></footer>
+          <footer><b>${q.a}</b><span>en Google</span></footer>
         </div>
       </blockquote>`).join('');
 
@@ -448,20 +289,21 @@ function resenas() {
 
   const L = tallo.getTotalLength();
   gsap.set(tallo, { strokeDasharray: L, strokeDashoffset: L });
-  hojas.forEach(h => gsap.set(h, { scale: 0, opacity: 0, rotation: signo(h) * 32, transformOrigin: origen(h) }));
+  hojas.forEach(h => gsap.set(h, { scale: 0, opacity: 0, rotation: signo(h) * 28, transformOrigin: origen(h) }));
 
+  /* Cada hoja se mece sola, desde el punto donde la une el tallo */
   const meceos = new Map();
   const mecer = h => {
     meceos.get(h)?.kill();
-    meceos.set(h, gsap.to(h, { rotation: signo(h) * gsap.utils.random(.9, 1.7),
-      duration: gsap.utils.random(2.6, 3.9), ease: 'sine.inOut', yoyo: true, repeat: -1 }));
+    meceos.set(h, gsap.to(h, { rotation: signo(h) * gsap.utils.random(.8, 1.6),
+      duration: gsap.utils.random(2.8, 4.2), ease: 'sine.inOut', yoyo: true, repeat: -1 }));
   };
 
   onView(enr, () => {
-    gsap.to(tallo, { strokeDashoffset: 0, duration: 1.7, ease: 'power2.inOut' });
+    gsap.to(tallo, { strokeDashoffset: 0, duration: 2.2, ease: 'power2.inOut' });
     hojas.forEach((h, i) => gsap.to(h, {
-      scale: 1, opacity: 1, rotation: 0, duration: 1.3, ease: 'elastic.out(1,.55)',
-      delay: .35 + i * .3, transformOrigin: origen(h), onComplete: () => mecer(h)
+      scale: 1, opacity: 1, rotation: 0, duration: 1.3, ease: 'elastic.out(1,.6)',
+      delay: .4 + i * .35, transformOrigin: origen(h), onComplete: () => mecer(h)
     }));
   });
 
@@ -469,13 +311,12 @@ function resenas() {
     const estrellas = $$('.hoja__s svg', h);
     h.addEventListener('pointerenter', () => {
       meceos.get(h)?.kill();
-      gsap.to(h, { rotation: signo(h) * -2.6, y: -8, scale: 1.025, duration: .6,
-        ease: 'back.out(2.5)', overwrite: 'auto' });
+      gsap.to(h, { rotation: signo(h) * -2.4, y: -6, duration: .6, ease: 'back.out(2.5)', overwrite: 'auto' });
       gsap.fromTo(estrellas, { rotation: -25, scale: .6 },
         { rotation: 0, scale: 1, duration: .5, stagger: .05, ease: 'back.out(3)', transformOrigin: '50% 50%' });
     });
     h.addEventListener('pointerleave', () => {
-      gsap.to(h, { rotation: 0, y: 0, scale: 1, duration: 1.1, ease: 'elastic.out(1,.4)',
+      gsap.to(h, { rotation: 0, y: 0, duration: 1.1, ease: 'elastic.out(1,.4)',
         overwrite: 'auto', onComplete: () => mecer(h) });
     });
   });
@@ -499,25 +340,25 @@ function reels() {
 
   $$('.reel').forEach(fig => {
     const video = $('video', fig), btn = $('.reel__sound', fig);
-    new IntersectionObserver(es => es.forEach(e => {
-      if (e.isIntersecting) video.play().catch(() => {}); else video.pause();
-    }), { threshold: .4 }).observe(fig);
     btn.addEventListener('click', () => {
       const mudo = video.muted;
-      $$('.reel video').forEach(v => { if (v !== video) v.muted = true; });
+      $$('.reel video').forEach(v => { v.muted = true; });
+      $$('.reel__sound').forEach(b => b.classList.remove('on'));
       video.muted = !mudo;
+      btn.classList.toggle('on', mudo);
       btn.setAttribute('aria-label', mudo ? 'Silenciar' : 'Activar el sonido');
-      btn.style.borderColor = mudo ? 'var(--verde)' : '';
     });
+    if (!GS || REDUCED) return;
+    gsap.set(fig, { opacity: 0, y: 60 });
+    onView(fig, () => gsap.to(fig, { opacity: 1, y: 0, duration: 1, ease: 'power3.out', clearProps: 'transform,opacity' }));
   });
 }
 
 /* --------------------------------------------------------------- arranque */
-plantar();
+ambientar();
 promos();
 const empezarHero = hero();
 carta();
-vitrina();
 resenas();
 reels();
 counters();

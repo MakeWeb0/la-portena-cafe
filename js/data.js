@@ -19,7 +19,9 @@ const CONFIG = {
   horario: [
     { d: 'Lunes a sábado', h: '08:00 – 22:00' },
     { d: 'Domingo',        h: '09:00 – 14:00' }
-  ]
+  ],
+  /* Lo mismo en horas, para el cartel «Abierto ahora» (hora de Alicante) */
+  abre: { semana: [8, 22], dom: [9, 14] }
 };
 
 /* ---------- Promos de la pizarra de la puerta ---------- */
