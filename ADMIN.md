@@ -58,8 +58,8 @@ Si un precio lleva varias medidas (`3 € / 6 € / 8 €`), se respeta tal cual
 
 ### Modo prueba
 
-En la pantalla de entrada, **«Probar sin publicar»** abre el panel con los datos de la web
-sin permiso de escritura. El botón pasa a **Descargar data.js** (no se publica nada).
+En la pantalla de entrada, la contraseña **`1234`** abre el panel con los datos de la web
+sin permiso de escritura (es solo de prueba: cambiarla en `PRUEBA`, al principio de `js/admin.js`). El botón pasa a **Descargar data.js** (no se publica nada).
 Útil para enseñárselo al cliente antes de darle la clave.
 
 ## Límites conocidos

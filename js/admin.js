@@ -10,6 +10,7 @@
 /* ← dónde vive la web. Si se cambia de repositorio, se cambia aquí. */
 const REPO = { owner: 'MakeWeb0', repo: 'la-portena-cafe', branch: 'main' };
 const CLAVE = 'lp.admin.clave';
+const PRUEBA = '1234';        // contraseña de entrada al modo prueba (no publica nada)
 const NOMBRES = ['CONFIG', 'PROMOS', 'CARTA', 'SECCIONES', 'PRODUCTOS', 'RESENAS', 'DESTACADOS'];
 
 const $  = (s, c = document) => c.querySelector(s);
@@ -560,11 +561,12 @@ function arrancar() {
   $('#loginForm').addEventListener('submit', e => {
     e.preventDefault();
     const v = $('#clave').value.trim();
-    if (!v) { mostrarLogin('Pega la clave que te dieron.'); return; }
+    if (!v) { mostrarLogin('Escribe la contraseña.'); return; }
+    if (v === PRUEBA) { demo = true; token = ''; $('#clave').value = ''; entrar(); return; }
     token = v; try { localStorage.setItem(CLAVE, v); } catch {}
     entrar();
   });
-  $('#demoBtn').addEventListener('click', () => { demo = true; token = ''; entrar(); });
+
   addEventListener('beforeunload', e => { if (sucio) { e.preventDefault(); e.returnValue = ''; } });
 
   if (token) entrar(); else mostrarLogin();
