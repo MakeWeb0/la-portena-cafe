@@ -1,6 +1,6 @@
 /* =========================================================================
    La Porteña — panel de control
-   Lee js/data.js, deja editarlo con formularios y lo vuelve a escribir.
+   Lee js/data.js, deja editarlo con botones y formularios y lo vuelve a escribir.
    Al publicar hace UN commit en GitHub (data.js + las fotos nuevas) y GitHub
    Pages actualiza la web en uno o dos minutos. No hay servidor propio.
    ========================================================================= */
@@ -18,20 +18,27 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 let D = null;                 // los datos que se editan
+let base = '';                // cómo estaban al cargar / publicar (para saber si hay cambios)
 let token = '';               // clave de acceso (token de GitHub)
 let demo = false;             // modo prueba: no publica, descarga
-let sucio = false;            // hay cambios sin publicar
 let pestana = 'inicio';
-let cartaTab = 0;             // familia de carta abierta
+let cartaTab = 0;             // sección de carta abierta
 let tiendaSec = 'todos';      // sección de tienda filtrada
 let siguienteFoco = null;
+let hist = [];                // fotos fijas del estado anterior, para «Deshacer»
 const fotos = new Map();      // ruta → { dataUrl, b64 }  (fotos nuevas aún sin publicar)
 
 /* ---------------------------------------------------------------- avisos */
-function toast(msg, tipo = '', ms = 4200) {
+function toast(msg, tipo = '', ms = 4200, accion = null) {
   const t = document.createElement('div');
   t.className = 'toast ' + tipo;
-  t.textContent = msg;
+  const s = document.createElement('span'); s.textContent = msg; t.appendChild(s);
+  if (accion) {
+    const b = document.createElement('button');
+    b.textContent = accion.txt; b.className = 'toast__b';
+    b.onclick = () => { accion.fn(); t.remove(); };
+    t.appendChild(b);
+  }
   $('#toasts').appendChild(t);
   setTimeout(() => t.remove(), ms);
 }
@@ -41,14 +48,10 @@ const get = (o, ruta) => ruta.split('.').reduce((a, k) => (a == null ? a : a[k])
 function poner(o, ruta, v) {
   const ks = ruta.split('.');
   const ult = ks.pop();
-  const padre = ks.length ? get(o, ks.join('.')) : o;
-  padre[ult] = v;
+  (ks.length ? get(o, ks.join('.')) : o)[ult] = v;
 }
 const mover = (arr, i, d) => { const j = i + d; if (j < 0 || j >= arr.length) return false; [arr[i], arr[j]] = [arr[j], arr[i]]; return true; };
-
-function parsear(txt) {
-  return new Function(txt + ';return {' + NOMBRES.join(',') + '};')();
-}
+const parsear = txt => new Function(txt + ';return {' + NOMBRES.join(',') + '};')();
 
 /* ------------------------------------------------------------ GitHub (API) */
 async function api(ruta, opt = {}) {
@@ -75,9 +78,9 @@ async function cargar() {
   D = parsear(txt);
   D.CONFIG.aviso = D.CONFIG.aviso || '';
   D.CONFIG.abre = D.CONFIG.abre || { semana: ['08:00', '22:00'], dom: ['09:00', '14:00'] };
+  base = JSON.stringify(D);
+  hist = [];
 }
-
-const aB64 = txt => btoa(String.fromCharCode(...new TextEncoder().encode(txt)));
 
 async function subir(texto) {
   const ref = await api(`${repoUrl}/git/ref/heads/${REPO.branch}`);
@@ -110,18 +113,27 @@ function descargar(nombre, texto) {
 }
 
 /* --------------------------------------------------------------- estado */
-function marcar(s) {
-  sucio = s;
+const haySinPublicar = () => JSON.stringify(D) !== base;
+
+function refrescar() {
+  const s = haySinPublicar();
   const e = $('#estado');
   e.className = 'estado' + (s ? ' sucio' : '');
-  $('span', e).textContent = s ? 'Cambios sin publicar' : 'Sin cambios';
-  const b = $('#pub');
-  b.disabled = !s;
-  b.classList.toggle('listo', s);
-  b.textContent = demo ? 'Descargar data.js' : 'Publicar cambios';
+  $('span', e).textContent = s ? 'Cambios sin publicar' : 'Todo publicado';
+  ['#pub', '#pub2'].forEach(id => { const b = $(id); b.disabled = !s; b.classList.toggle('listo', s); b.textContent = id === '#pub2' ? (demo ? 'Descargar' : 'Publicar ahora') : (demo ? 'Descargar data.js' : 'Publicar cambios'); });
+  $('#barra').hidden = !s;
+  $('#undo').disabled = !hist.length;
+  document.body.classList.toggle('con-barra', s);
 }
 
-function cambiado() { if (!sucio) marcar(true); }
+/* Foto fija antes de quitar/mover algo, para poder «Deshacer» */
+function guardarHist() { hist.push(JSON.stringify(D)); if (hist.length > 30) hist.shift(); }
+function deshacer() {
+  if (!hist.length) return;
+  D = JSON.parse(hist.pop());
+  sincronizar(); pintar(); refrescar();
+  toast('Deshecho.', 'ok', 1800);
+}
 
 /* Que lo escrito a mano quede bien: «1.5» → «1,50 €» */
 function precio(v) {
@@ -132,14 +144,22 @@ function precio(v) {
   }
   return t;
 }
+const coma = n => n.toFixed(2).replace('.', ',');
+
+/* Sube o baja un porcentaje todos los números de un precio («3 € / 6 €» también) */
+function ajustarPrecio(txt, pct) {
+  return txt.replace(/\d+(?:[.,]\d+)?/g, m => {
+    const v = parseFloat(m.replace(',', '.')) * (1 + pct / 100);
+    const r = Math.round(v * 10) / 10;
+    return /[.,]/.test(m) || r % 1 ? coma(r) : String(r);
+  });
+}
 
 /* Cosas que se calculan solas a partir de lo que escribe el dueño */
 function sincronizar() {
   const C = D.CONFIG, a = C.abre;
-  C.horario = [
-    { d: 'Lunes a sábado', h: `${a.semana[0]} – ${a.semana[1]}` },
-    { d: 'Domingo', h: a.dom ? `${a.dom[0]} – ${a.dom[1]}` : 'Cerrado' }
-  ];
+  const txt = r => r ? `${r[0]} – ${r[1]}` : 'Cerrado';
+  C.horario = [{ d: 'Lunes a sábado', h: txt(a.semana) }, { d: 'Domingo', h: txt(a.dom) }];
   const tel = (C.telefono || '').replace(/\D/g, '');
   C.telHref = tel ? (tel.length === 9 ? '+34' + tel : '+' + tel) : '';
   C.whatsapp = (C.whatsapp || '').replace(/\D/g, '');
@@ -150,59 +170,10 @@ const campoTxt = (etq, ruta, extra = '') => `
   <div class="campo"><label>${etq}</label>
     <input type="text" data-p="${ruta}" value="${esc(get(D, ruta))}" ${extra}></div>`;
 
-function vistaInicio() {
-  const C = D.CONFIG, a = C.abre;
-  return `
-  <section class="card"><h2>Aviso en la web</h2>
-    <p class="ayuda">Sale en una franja ámbar arriba del todo. Úsalo para «Cerrado por vacaciones», un puente… Déjalo vacío para quitarlo.</p>
-    <div class="cuerpo"><div class="campo"><label>Texto del aviso</label>
-      <input type="text" data-p="CONFIG.aviso" value="${esc(C.aviso)}" placeholder="Ej.: Cerrado del 10 al 20 de agosto. ¡Volvemos pronto!"></div></div>
-  </section>
+const interruptor = (attrs, marcado, etq, cls = '') => `
+  <label class="sw ${cls}"><input type="checkbox" ${attrs} ${marcado ? 'checked' : ''}><i></i><span>${etq}</span></label>`;
 
-  <section class="card"><h2>Horario</h2>
-    <p class="ayuda">La web pone sola «Abierto ahora» o «Cerrado» según estas horas.</p>
-    <div class="cuerpo">
-      <div class="horas"><b>Lunes a sábado</b>
-        <span class="par"><input type="time" data-p="CONFIG.abre.semana.0" value="${esc(a.semana[0])}"> <span>a</span> <input type="time" data-p="CONFIG.abre.semana.1" value="${esc(a.semana[1])}"></span><span></span></div>
-      <div class="horas"><b>Domingo</b>
-        <span class="par"><input type="time" data-p="CONFIG.abre.dom.0" value="${esc(a.dom?.[0] || '09:00')}" ${a.dom ? '' : 'disabled'}> <span>a</span> <input type="time" data-p="CONFIG.abre.dom.1" value="${esc(a.dom?.[1] || '14:00')}" ${a.dom ? '' : 'disabled'}></span>
-        <label class="check"><input type="checkbox" data-act="domCerrado" ${a.dom ? '' : 'checked'}> Cerrado</label></div>
-    </div>
-  </section>
-
-  <section class="card"><h2>Teléfono y dirección</h2>
-    <div class="cuerpo">
-      <div class="dos">
-        ${campoTxt('Teléfono (el que se ve en la web)', 'CONFIG.telefono', 'inputmode="tel"')}
-        ${campoTxt('WhatsApp donde llegan los pedidos', 'CONFIG.whatsapp', 'inputmode="numeric" placeholder="34600123456"')}
-      </div>
-      <p class="ayuda" style="margin-top:-6px">El WhatsApp, con el 34 delante y sin espacios. Si lo cambias, los pedidos de la tienda llegarán a ese número.</p>
-      <div class="dos">
-        ${campoTxt('Dirección', 'CONFIG.direccion')}
-        ${campoTxt('Ciudad', 'CONFIG.ciudad')}
-      </div>
-      ${campoTxt('Instagram (enlace completo)', 'CONFIG.instagram', 'inputmode="url"')}
-      <details><summary class="enlace">Enlaces avanzados</summary>
-        <div class="cuerpo" style="margin-top:12px">
-          ${campoTxt('Enlace de Google Maps', 'CONFIG.mapa')}
-          ${campoTxt('Enlace a las reseñas de Google', 'CONFIG.google')}
-        </div></details>
-    </div>
-  </section>
-
-  <section class="card"><h2>La pizarra de la portada</h2>
-    <p class="ayuda">Las promos que salen en la pizarrita junto al vídeo de la portada.</p>
-    <div class="cuerpo"><div class="lista">
-      ${D.PROMOS.map((p, i) => `
-        <div class="fila">
-          <input type="text" data-p="PROMOS.${i}.t" value="${esc(p.t)}" placeholder="Ej.: Tapa + caña" aria-label="Promo">
-          <input type="text" data-p="PROMOS.${i}.p" data-k="precio" value="${esc(p.p)}" placeholder="4,90 €" aria-label="Precio">
-          ${botonesFila('promo', i, D.PROMOS.length)}
-        </div>`).join('') || '<p class="vacio">No hay promos. Añade la primera.</p>'}
-    </div>
-    <button class="mas" data-act="promoAdd">+ Añadir promo</button></div>
-  </section>`;
-}
+const ayuda = txt => `<p class="guia">${txt}</p>`;
 
 function botonesFila(tipo, i, n, g = '') {
   return `<span class="btns">
@@ -211,35 +182,149 @@ function botonesFila(tipo, i, n, g = '') {
     <button class="ib ib--x" data-act="${tipo}Del" data-a="${i}" data-b="${g}" title="Quitar" aria-label="Quitar">✕</button></span>`;
 }
 
+/* ---- INICIO: botones grandes con lo más habitual ---- */
+function vistaInicio() {
+  const t = (ic, titulo, sub, ir) => `<button class="tile" data-act="ir" data-ir="${ir}"><i>${ic}</i><b>${titulo}</b><small>${sub}</small></button>`;
+  return `
+  <section class="bienvenida">
+    <h1>¿Qué quieres hacer hoy?</h1>
+    <p>Pulsa lo que necesites. Cuando termines, dale a <b>Publicar</b> y en un par de minutos está en la web.</p>
+  </section>
+  <div class="tiles">
+    ${t('📢', 'Poner un aviso', 'Cerrado por vacaciones, obras, festivo…', 'aviso')}
+    ${t('⏰', 'Cambiar el horario', 'Cuándo abrimos y cerramos', 'horario')}
+    ${t('💶', 'Cambiar un precio', 'Busca el plato y cámbialo', 'precio')}
+    ${t('➕', 'Añadir un plato', 'A la carta, con su precio', 'plato')}
+    ${t('🛒', 'Producto de la tienda', 'Precio, foto o «agotado»', 'tienda')}
+    ${t('📸', 'Poner una foto', 'A un producto de la tienda', 'foto')}
+    ${t('⭐', 'Reseñas', 'Añadir o quitar reseñas de Google', 'resenas')}
+    ${t('📍', 'Teléfono y dirección', 'WhatsApp, Instagram, promos', 'local')}
+  </div>
+  <section class="pasos">
+    <div><b>1</b><span>Cambia lo que necesites</span></div>
+    <div><b>2</b><span>Pulsa <em>Publicar</em> (arriba o abajo)</span></div>
+    <div><b>3</b><span>En 1–2 minutos está en la web</span></div>
+  </section>`;
+}
+
+/* ---- HORARIO Y AVISOS ---- */
+const AVISOS = [
+  ['🏖️', 'Cerrado por vacaciones', 'Cerrado por vacaciones del __ al __. ¡Volvemos pronto!'],
+  ['🔧', 'Cerrado por obras', 'Cerrado por obras. Disculpa las molestias.'],
+  ['🎉', 'Cerrado por festivo', 'Hoy cerramos por festivo. ¡Mañana abrimos como siempre!'],
+  ['🕒', 'Horario especial', 'Hoy abrimos en horario especial: de __ a __.']
+];
+
+function filaHoras(nombre, clave) {
+  const r = D.CONFIG.abre[clave];
+  return `<div class="horas">
+    <b>${nombre}</b>
+    ${interruptor(`data-cerrado="${clave}"`, !!r, 'Abierto', 'sw--abierto')}
+    <span class="par ${r ? '' : 'apagado'}">
+      <input type="time" data-p="CONFIG.abre.${clave}.0" value="${esc(r?.[0] || '09:00')}" ${r ? '' : 'disabled'} aria-label="Abre">
+      <span>a</span>
+      <input type="time" data-p="CONFIG.abre.${clave}.1" value="${esc(r?.[1] || '14:00')}" ${r ? '' : 'disabled'} aria-label="Cierra">
+    </span></div>`;
+}
+
+function vistaHorario() {
+  const C = D.CONFIG;
+  return `
+  ${ayuda('Lo que escribas en el aviso sale en una <b>franja ámbar arriba de toda la web</b>. El horario hace que la portada ponga sola «Abierto ahora» o «Cerrado».')}
+  <section class="card"><h2>📢 Aviso en la web</h2>
+    <div class="cuerpo">
+      <p class="lbl">Elige uno y cámbialo a tu gusto:</p>
+      <div class="chips">
+        ${AVISOS.map(([ic, n, t]) => `<button class="chip" data-act="avisoPlantilla" data-t="${esc(t)}">${ic} ${n}</button>`).join('')}
+      </div>
+      <div class="campo"><label>Texto del aviso</label>
+        <input type="text" id="aviso" data-p="CONFIG.aviso" value="${esc(C.aviso)}" placeholder="Ej.: Cerrado del 10 al 20 de agosto. ¡Volvemos pronto!"></div>
+      ${C.aviso ? '<button class="btn btn--ghost" data-act="avisoQuitar">✕ Quitar el aviso</button>' : '<p class="ayuda">Ahora mismo no hay ningún aviso en la web.</p>'}
+    </div>
+  </section>
+
+  <section class="card"><h2>⏰ Horario</h2>
+    <div class="cuerpo">
+      ${filaHoras('Lunes a sábado', 'semana')}
+      ${filaHoras('Domingo', 'dom')}
+      <p class="ayuda">Si un día está en «Cerrado», la web lo dice sola.</p>
+    </div>
+  </section>`;
+}
+
+/* ---- DATOS DEL LOCAL ---- */
+function vistaLocal() {
+  const C = D.CONFIG;
+  return `
+  ${ayuda('Estos datos salen en la portada, en «Dónde estamos» y en el pie de la web.')}
+  <section class="card"><h2>📞 Teléfono y WhatsApp</h2>
+    <div class="cuerpo"><div class="dos">
+      ${campoTxt('Teléfono (el que se ve en la web)', 'CONFIG.telefono', 'inputmode="tel"')}
+      ${campoTxt('WhatsApp donde llegan los pedidos', 'CONFIG.whatsapp', 'inputmode="numeric" placeholder="34600123456"')}
+    </div>
+    <p class="ayuda">El WhatsApp, con el 34 delante y sin espacios. Si lo cambias, los pedidos de la tienda llegarán a ese número.</p></div>
+  </section>
+
+  <section class="card"><h2>📍 Dirección y redes</h2>
+    <div class="cuerpo"><div class="dos">
+      ${campoTxt('Dirección', 'CONFIG.direccion')}
+      ${campoTxt('Ciudad', 'CONFIG.ciudad')}
+    </div>
+    ${campoTxt('Instagram (enlace completo)', 'CONFIG.instagram', 'inputmode="url"')}
+    <details><summary class="enlace">Enlaces avanzados (Google Maps y reseñas)</summary>
+      <div class="cuerpo" style="margin-top:12px">
+        ${campoTxt('Enlace de Google Maps', 'CONFIG.mapa')}
+        ${campoTxt('Enlace a las reseñas de Google', 'CONFIG.google')}
+      </div></details></div>
+  </section>
+
+  <section class="card"><h2>🧾 La pizarra de la portada</h2>
+    <p class="ayuda">Las promos de la pizarrita junto al vídeo de la portada.</p>
+    <div class="cuerpo"><div class="lista">
+      ${D.PROMOS.map((p, i) => `
+        <div class="fila">
+          <input type="text" data-p="PROMOS.${i}.t" value="${esc(p.t)}" placeholder="Ej.: Tapa + caña" aria-label="Promo">
+          <input type="text" data-p="PROMOS.${i}.p" data-k="precio" value="${esc(p.p)}" placeholder="4,90 €" aria-label="Precio">
+          ${botonesFila('promo', i, D.PROMOS.length)}
+        </div>`).join('') || '<p class="vacio">No hay promos todavía.</p>'}
+    </div>
+    <button class="mas" data-act="promoAdd">＋ Añadir promo</button></div>
+  </section>`;
+}
+
+/* ---- LA CARTA ---- */
 function vistaCarta() {
   if (cartaTab >= D.CARTA.length) cartaTab = Math.max(0, D.CARTA.length - 1);
   const fam = D.CARTA[cartaTab];
   const chips = D.CARTA.map((c, i) => `<button class="chip${i === cartaTab ? ' on' : ''}" data-act="cartaSel" data-a="${i}">${esc(c.tab || 'Sin nombre')}</button>`).join('')
-    + '<button class="chip chip--nuevo" data-act="cartaAdd">+ Nueva sección</button>';
+    + '<button class="chip chip--nuevo" data-act="cartaAdd">＋ Nueva sección</button>';
 
   if (!fam) return `<section class="card"><div class="chips">${chips}</div></section>`;
   return `
+  ${ayuda('Escribe en el cuadro de abajo para <b>buscar un plato</b>. Para cambiar un precio, toca el precio y escribe el nuevo. Con <b>Intro</b> pasas al siguiente plato.')}
   <section class="card">
     <div class="chips">${chips}</div>
     <div class="cuerpo" style="margin-top:18px">
-      <div class="grupo__cab" style="margin-bottom:0">
-        <div class="campo"><label>Nombre de esta sección de la carta</label>
-          <input type="text" data-p="CARTA.${cartaTab}.tab" value="${esc(fam.tab)}"></div>
-        <span class="btns">
-          <button class="ib" data-act="cartaUp" ${cartaTab === 0 ? 'disabled' : ''} title="Mover a la izquierda" aria-label="Mover a la izquierda">◀</button>
-          <button class="ib" data-act="cartaDown" ${cartaTab === D.CARTA.length - 1 ? 'disabled' : ''} title="Mover a la derecha" aria-label="Mover a la derecha">▶</button>
-          <button class="ib ib--x" data-act="cartaDel" title="Quitar la sección entera" aria-label="Quitar la sección entera">✕</button></span>
-      </div>
-      <input type="search" class="buscar" id="buscar" placeholder="Buscar un plato o bebida…" aria-label="Buscar en la carta">
+      <input type="search" class="buscar" id="buscar" placeholder="🔍  Buscar un plato o bebida…" aria-label="Buscar en la carta">
+      <details class="ajustes"><summary class="enlace">Opciones de esta sección («${esc(fam.tab)}»)</summary>
+        <div class="grupo__cab" style="margin:12px 0 0">
+          <div class="campo"><label>Nombre de la sección</label>
+            <input type="text" data-p="CARTA.${cartaTab}.tab" value="${esc(fam.tab)}"></div>
+          <span class="btns">
+            <button class="ib" data-act="cartaUp" ${cartaTab === 0 ? 'disabled' : ''} title="Mover a la izquierda" aria-label="Mover a la izquierda">◀</button>
+            <button class="ib" data-act="cartaDown" ${cartaTab === D.CARTA.length - 1 ? 'disabled' : ''} title="Mover a la derecha" aria-label="Mover a la derecha">▶</button>
+            <button class="ib ib--x" data-act="cartaDel" title="Quitar la sección entera" aria-label="Quitar la sección entera">✕</button></span>
+        </div></details>
     </div>
   </section>
 
   ${fam.grupos.map((g, gi) => `
   <section class="card grupo">
     <div class="grupo__cab">
-      <div class="campo"><label>Familia (ej.: Café, Tartas, Cervezas)</label>
-        <input type="text" data-p="CARTA.${cartaTab}.grupos.${gi}.t" value="${esc(g.t)}"></div>
+      <div class="campo"><label>Familia</label>
+        <input type="text" data-p="CARTA.${cartaTab}.grupos.${gi}.t" value="${esc(g.t)}" placeholder="Ej.: Café, Tartas, Cervezas"></div>
       <span class="btns">
+        <button class="ib" data-act="grpPct" data-a="${gi}" title="Subir o bajar todos los precios de esta familia" aria-label="Subir o bajar precios">％</button>
         <button class="ib" data-act="grpUp" data-a="${gi}" ${gi === 0 ? 'disabled' : ''} title="Subir" aria-label="Subir">▲</button>
         <button class="ib" data-act="grpDown" data-a="${gi}" ${gi === fam.grupos.length - 1 ? 'disabled' : ''} title="Bajar" aria-label="Bajar">▼</button>
         <button class="ib ib--x" data-act="grpDel" data-a="${gi}" title="Quitar la familia" aria-label="Quitar la familia">✕</button></span>
@@ -252,14 +337,15 @@ function vistaCarta() {
           ${botonesFila('item', ii, g.items.length, gi)}
         </div>`).join('') || '<p class="vacio">Sin platos todavía.</p>'}
     </div>
-    <div class="nota"><button class="mas" data-act="itemAdd" data-a="${gi}">+ Añadir a ${esc(g.t || 'esta familia')}</button></div>
+    <div class="nota"><button class="mas" data-act="itemAdd" data-a="${gi}">＋ Añadir a ${esc(g.t || 'esta familia')}</button></div>
     <div class="campo" style="margin-top:16px"><label>Nota al pie (opcional)</label>
       <input type="text" data-p="CARTA.${cartaTab}.grupos.${gi}.nota" value="${esc(g.nota || '')}" placeholder="Ej.: Tenemos leche de avena y sin lactosa."></div>
   </section>`).join('')}
 
-  <button class="mas" data-act="grpAdd">+ Añadir una familia nueva a «${esc(fam.tab)}»</button>`;
+  <button class="mas" data-act="grpAdd">＋ Añadir una familia nueva a «${esc(fam.tab)}»</button>`;
 }
 
+/* ---- TIENDA ---- */
 const fotoSrc = p => (p.i && fotos.get(p.i)?.dataUrl) || p.i || '';
 
 function vistaTienda() {
@@ -269,9 +355,9 @@ function vistaTienda() {
   const lista = D.PRODUCTOS.map((p, n) => ({ p, n })).filter(({ p }) => tiendaSec === 'todos' || p.s === tiendaSec);
 
   return `
-  <section class="card"><h2>Productos de la tienda</h2>
-    <p class="ayuda">Si dejas el precio vacío, en la web sale «Precio en breve» y el cliente puede preguntarlo por WhatsApp. «Ocultar» lo quita de la tienda sin borrarlo (por ejemplo, si se agota).</p>
-    <div class="cuerpo"><div class="chips">${chips}</div></div>
+  ${ayuda('Toca la <b>foto</b> para cambiarla. Con <b>− / +</b> subes o bajas el precio de 10 en 10 céntimos. Si el interruptor «Disponible» está apagado, el producto desaparece de la tienda sin borrarse.')}
+  <section class="card">
+    <div class="chips">${chips}</div>
   </section>
   <div class="prods">
     ${lista.map(({ p, n }) => {
@@ -279,31 +365,47 @@ function vistaTienda() {
       return `
       <article class="prod${p.off ? ' oculto' : ''}">
         <label class="foto${src ? '' : ' foto--sin'}" title="Cambiar la foto">
-          ${src ? `<img src="${esc(src)}" alt=""><span>Cambiar foto</span>` : 'Sin foto<br>Toca para añadirla'}
+          ${src ? `<img src="${esc(src)}" alt="">` : '<b>📷</b>'}
+          <span>${src ? '📷 Cambiar' : 'Añadir foto'}</span>
           <input type="file" accept="image/*" data-foto="${n}">
         </label>
         <div class="prod__f">
           <input type="text" data-p="PRODUCTOS.${n}.n" value="${esc(p.n)}" placeholder="Nombre del producto" aria-label="Nombre">
           <input type="text" data-p="PRODUCTOS.${n}.v" value="${esc(p.v || '')}" placeholder="Formato (500 g, 1 L…)" aria-label="Formato">
-          <label class="check"><input type="checkbox" data-pb="PRODUCTOS.${n}.pickupOnly" ${p.pickupOnly ? 'checked' : ''}> Solo recogida en tienda</label>
-          <label class="check"><input type="checkbox" data-pb="PRODUCTOS.${n}.off" ${p.off ? 'checked' : ''}> Ocultar (agotado)</label>
         </div>
         <div class="prod__pie">
-          <span class="precio"><input type="text" inputmode="decimal" data-p="PRODUCTOS.${n}.p" data-k="num" value="${p.p == null ? '' : p.p.toFixed(2).replace('.', ',')}" placeholder="Precio" aria-label="Precio en euros"> €
-            ${p.p == null ? '<span class="sello sello--aviso">Precio en breve</span>' : ''}</span>
+          <div class="precio">
+            <button class="ib" data-act="precioMenos" data-a="${n}" aria-label="Bajar 10 céntimos">−</button>
+            <input type="text" inputmode="decimal" data-p="PRODUCTOS.${n}.p" data-k="num" value="${p.p == null ? '' : coma(p.p)}" placeholder="—" aria-label="Precio en euros">
+            <span>€</span>
+            <button class="ib" data-act="precioMas" data-a="${n}" aria-label="Subir 10 céntimos">＋</button>
+          </div>
+          ${p.p == null ? '<span class="sello sello--aviso">Precio en breve</span>' : ''}
+        </div>
+        <div class="prod__sw">
+          ${interruptor(`data-pb="PRODUCTOS.${n}.off" data-inv="1"`, !p.off, 'Disponible')}
+          ${interruptor(`data-pb="PRODUCTOS.${n}.pickupOnly"`, p.pickupOnly, 'Solo recogida')}
+        </div>
+        <div class="prod__cola">
           <select data-p="PRODUCTOS.${n}.s" aria-label="Sección">${secs.map(s => `<option value="${s.id}" ${s.id === p.s ? 'selected' : ''}>${esc(s.t)}</option>`).join('')}</select>
-          <button class="borrar" data-act="prodDel" data-a="${n}">Borrar</button>
+          <button class="borrar" data-act="prodDel" data-a="${n}">🗑 Borrar</button>
         </div>
       </article>`; }).join('') || '<p class="vacio" style="grid-column:1/-1">No hay productos en esta sección.</p>'}
   </div>
-  <button class="mas" data-act="prodAdd">+ Añadir un producto${tiendaSec === 'todos' ? '' : ' a ' + esc(secs.find(s => s.id === tiendaSec)?.t || '')}</button>`;
+  <button class="mas" data-act="prodAdd">＋ Añadir un producto${tiendaSec === 'todos' ? '' : ' a ' + esc(secs.find(s => s.id === tiendaSec)?.t || '')}</button>`;
+}
+
+/* ---- RESEÑAS ---- */
+function estrellas(i, n) {
+  return `<span class="est" role="group" aria-label="Estrellas">${[1, 2, 3, 4, 5].map(k =>
+    `<button class="${k <= n ? 'on' : ''}" data-act="estrella" data-a="${i}" data-b="${k}" aria-label="${k} estrellas">★</button>`).join('')}</span>`;
 }
 
 function vistaResenas() {
   const C = D.CONFIG;
   return `
-  <section class="card"><h2>La nota de Google</h2>
-    <p class="ayuda">Lo que sale en «La nota de la casa». Cópialo de la ficha de Google.</p>
+  ${ayuda('Copia las reseñas <b>tal cual</b> desde Google. No inventes ninguna.')}
+  <section class="card"><h2>⭐ La nota de Google</h2>
     <div class="cuerpo"><div class="dos">
       <div class="campo"><label>Nota (de 1 a 5)</label><input type="text" inputmode="decimal" data-p="CONFIG.rating" data-k="num" value="${String(C.rating).replace('.', ',')}"></div>
       <div class="campo"><label>Número de reseñas</label><input type="text" inputmode="numeric" data-p="CONFIG.resenas" data-k="num" value="${C.resenas}"></div>
@@ -312,44 +414,39 @@ function vistaResenas() {
       <input type="text" data-destacados value="${esc(D.DESTACADOS.join(', '))}" placeholder="Medialunas, Empanadas, El café"></div></div>
   </section>
 
-  <section class="card"><h2>Reseñas que se muestran</h2>
-    <p class="ayuda">Copia las reseñas tal cual desde Google. No inventes ninguna.</p>
+  <section class="card"><h2>💬 Reseñas que se muestran</h2>
     <div class="cuerpo">
       ${D.RESENAS.map((r, i) => `
       <div class="res">
         <div class="res__cab">
           <div class="campo"><label>Nombre</label><input type="text" data-p="RESENAS.${i}.a" value="${esc(r.a)}"></div>
-          <div class="campo"><label>Estrellas</label>
-            <select data-p="RESENAS.${i}.e" data-k="num">${[5, 4, 3, 2, 1].map(n => `<option value="${n}" ${(r.e || 5) === n ? 'selected' : ''}>${'★'.repeat(n)}</option>`).join('')}</select></div>
-          <span class="btns">
-            <button class="ib" data-act="resUp" data-a="${i}" ${i === 0 ? 'disabled' : ''} aria-label="Subir">▲</button>
-            <button class="ib" data-act="resDown" data-a="${i}" ${i === D.RESENAS.length - 1 ? 'disabled' : ''} aria-label="Bajar">▼</button>
-            <button class="ib ib--x" data-act="resDel" data-a="${i}" aria-label="Quitar">✕</button></span>
+          <div class="campo"><label>Estrellas</label>${estrellas(i, r.e || 5)}</div>
+          ${botonesFila('res', i, D.RESENAS.length)}
         </div>
         <div class="campo"><label>Lo que dice</label><textarea data-p="RESENAS.${i}.t">${esc(r.t)}</textarea></div>
       </div>`).join('') || '<p class="vacio">No hay reseñas.</p>'}
-      <button class="mas" data-act="resAdd">+ Añadir una reseña</button>
+      <button class="mas" data-act="resAdd">＋ Añadir una reseña</button>
     </div>
   </section>`;
 }
 
-const VISTAS = { inicio: vistaInicio, carta: vistaCarta, tienda: vistaTienda, resenas: vistaResenas };
+const VISTAS = { inicio: vistaInicio, horario: vistaHorario, carta: vistaCarta, tienda: vistaTienda, resenas: vistaResenas, local: vistaLocal };
 
-function pintar() {
-  const y = scrollY;
+function pintar(arriba = false) {
+  const y = arriba ? 0 : scrollY;
   $('#vista').innerHTML = VISTAS[pestana]();
   $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === pestana));
   filtrar();
   scrollTo(0, y);
-  if (siguienteFoco) { $(siguienteFoco)?.focus(); siguienteFoco = null; }
+  if (siguienteFoco) { const f = $(siguienteFoco); f?.focus(); f?.scrollIntoView?.({ block: 'center' }); siguienteFoco = null; }
+  refrescar();
 }
+
+function ir(tab, foco = null) { pestana = tab; siguienteFoco = foco; pintar(true); }
 
 function filtrar() {
   const q = ($('#buscar')?.value || '').trim().toLowerCase();
-  $$('[data-fila]').forEach(f => {
-    const nombre = $('input', f).value.toLowerCase();
-    f.hidden = !!q && !nombre.includes(q);
-  });
+  $$('[data-fila]').forEach(f => { f.hidden = !!q && !$('input', f).value.toLowerCase().includes(q); });
   $$('.grupo').forEach(g => { g.hidden = !!q && $$('[data-fila]:not([hidden])', g).length === 0; });
 }
 
@@ -357,9 +454,7 @@ function filtrar() {
 function alEscribir(e) {
   const el = e.target;
   if (el.id === 'buscar') { filtrar(); return; }
-  if (el.dataset.destacados !== undefined) {
-    D.DESTACADOS = el.value.split(',').map(s => s.trim()).filter(Boolean); cambiado(); return;
-  }
+  if (el.dataset.destacados !== undefined) { D.DESTACADOS = el.value.split(',').map(s => s.trim()).filter(Boolean); refrescar(); return; }
   const ruta = el.dataset.p;
   if (!ruta) return;
   let v = el.value;
@@ -370,52 +465,79 @@ function alEscribir(e) {
   poner(D, ruta, v);
   if (ruta.startsWith('CONFIG.')) sincronizar();
   if (ruta.endsWith('.nota') && v === '') poner(D, ruta, undefined);
-  cambiado();
+  refrescar();
 }
 
 function alCambiar(e) {
   const el = e.target;
   if (el.dataset.k === 'precio') {
     const v = precio(el.value);
-    el.value = v; poner(D, el.dataset.p, v); cambiado();
+    el.value = v; poner(D, el.dataset.p, v); refrescar();
   }
   if (/^PRODUCTOS\.\d+\.p$/.test(el.dataset.p || '') && el.value.trim() !== '') {
     const n = parseFloat(el.value.replace(',', '.'));
-    if (!isNaN(n)) el.value = n.toFixed(2).replace('.', ',');
+    if (!isNaN(n)) el.value = coma(n);
   }
   if (el.dataset.pb) {
     const ruta = el.dataset.pb;
-    poner(D, ruta, el.checked ? true : undefined);
-    cambiado();
-    if (ruta.endsWith('.off')) pintar();
+    const marcado = el.dataset.inv ? !el.checked : el.checked;   // «Disponible» es lo contrario de «off»
+    poner(D, ruta, marcado ? true : undefined);
+    refrescar();
+    if (ruta.endsWith('.off')) el.closest('.prod')?.classList.toggle('oculto', marcado);
+  }
+  if (el.dataset.cerrado) {
+    const k = el.dataset.cerrado;
+    D.CONFIG.abre[k] = el.checked ? (k === 'dom' ? ['09:00', '14:00'] : ['08:00', '22:00']) : null;
+    sincronizar(); pintar();
   }
   if (el.dataset.foto !== undefined && el.files[0]) subirFoto(+el.dataset.foto, el.files[0]);
-  if (el.dataset.act === 'domCerrado') {
-    D.CONFIG.abre.dom = el.checked ? null : ['09:00', '14:00'];
-    sincronizar(); cambiado(); pintar();
-  }
   if (/^PRODUCTOS\.\d+\.s$/.test(el.dataset.p || '')) pintar();
+}
+
+/* Intro en un precio de la carta → nuevo plato justo debajo */
+function alTeclear(e) {
+  if (e.key !== 'Enter') return;
+  const el = e.target, m = (el.dataset.p || '').match(/^CARTA\.(\d+)\.grupos\.(\d+)\.items\.(\d+)\.([01])$/);
+  if (!m || e.isComposing) return;
+  e.preventDefault();
+  const [, t, g, i, col] = m.map(Number);
+  if (col === 0) { $(`[data-p="CARTA.${t}.grupos.${g}.items.${i}.1"]`)?.focus(); return; }
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+  guardarHist();
+  D.CARTA[t].grupos[g].items.splice(i + 1, 0, ['', '']);
+  siguienteFoco = `[data-p="CARTA.${t}.grupos.${g}.items.${i + 1}.0"]`;
+  pintar();
 }
 
 function alPulsar(e) {
   const b = e.target.closest('[data-act]');
   if (!b || b.tagName === 'INPUT') return;
-  const a = +b.dataset.a, bb = b.dataset.b === '' ? null : +b.dataset.b;
+  const a = +b.dataset.a, bb = b.dataset.b === '' || b.dataset.b === undefined ? null : +b.dataset.b;
   const fam = D.CARTA[cartaTab];
-  const conf = t => confirm(t);
-  let cambio = true;
+  let nombreQuitado = '';
 
   switch (b.dataset.act) {
+    /* inicio */
+    case 'ir': {
+      const m = { aviso: ['horario', '#aviso'], horario: ['horario', '[data-p="CONFIG.abre.semana.0"]'], precio: ['carta', '#buscar'],
+        plato: ['carta', '[data-act="itemAdd"]'], tienda: ['tienda', null], foto: ['tienda', '.foto'], resenas: ['resenas', null], local: ['local', null] }[b.dataset.ir];
+      ir(m[0], m[1]); return;
+    }
+
+    /* avisos */
+    case 'avisoPlantilla': D.CONFIG.aviso = b.dataset.t; siguienteFoco = '#aviso'; break;
+    case 'avisoQuitar': D.CONFIG.aviso = ''; break;
+
     /* pizarra de la portada */
     case 'promoAdd': D.PROMOS.push({ t: '', p: '' }); siguienteFoco = `[data-p="PROMOS.${D.PROMOS.length - 1}.t"]`; break;
     case 'promoUp': mover(D.PROMOS, a, -1); break;
     case 'promoDown': mover(D.PROMOS, a, 1); break;
-    case 'promoDel': if (!conf('¿Quitar esta promo?')) return; D.PROMOS.splice(a, 1); break;
+    case 'promoDel': nombreQuitado = D.PROMOS[a].t || 'La promo'; D.PROMOS.splice(a, 1); break;
 
     /* secciones de la carta */
-    case 'cartaSel': cartaTab = a; cambio = false; break;
-    case 'cartaAdd': D.CARTA.push({ tab: 'Nueva sección', grupos: [{ t: 'Nueva familia', items: [] }] }); cartaTab = D.CARTA.length - 1; siguienteFoco = `[data-p="CARTA.${cartaTab}.tab"]`; break;
-    case 'cartaDel': if (!conf(`¿Quitar la sección «${fam.tab}» con todo lo que lleva dentro?`)) return; D.CARTA.splice(cartaTab, 1); cartaTab = Math.max(0, cartaTab - 1); break;
+    case 'cartaSel': cartaTab = a; break;
+    case 'cartaAdd': D.CARTA.push({ tab: 'Nueva sección', grupos: [{ t: 'Nueva familia', items: [['', '']] }] }); cartaTab = D.CARTA.length - 1; siguienteFoco = `[data-p="CARTA.${cartaTab}.grupos.0.t"]`; break;
+    case 'cartaDel': nombreQuitado = `La sección «${fam.tab}»`; D.CARTA.splice(cartaTab, 1); cartaTab = Math.max(0, cartaTab - 1); break;
     case 'cartaUp': if (mover(D.CARTA, cartaTab, -1)) cartaTab--; break;
     case 'cartaDown': if (mover(D.CARTA, cartaTab, 1)) cartaTab++; break;
 
@@ -423,37 +545,58 @@ function alPulsar(e) {
     case 'grpAdd': fam.grupos.push({ t: '', items: [['', '']] }); siguienteFoco = `[data-p="CARTA.${cartaTab}.grupos.${fam.grupos.length - 1}.t"]`; break;
     case 'grpUp': mover(fam.grupos, a, -1); break;
     case 'grpDown': mover(fam.grupos, a, 1); break;
-    case 'grpDel': if (!conf(`¿Quitar la familia «${fam.grupos[a].t}» con sus ${fam.grupos[a].items.length} platos?`)) return; fam.grupos.splice(a, 1); break;
+    case 'grpDel': nombreQuitado = `La familia «${fam.grupos[a].t}»`; fam.grupos.splice(a, 1); break;
+    case 'grpPct': {
+      const r = prompt(`¿Cuánto quieres subir los precios de «${fam.grupos[a].t}»?\n\nEscribe un porcentaje:\n  5   → sube un 5 %\n  -10 → baja un 10 %`, '5');
+      const pct = parseFloat((r || '').replace(',', '.'));
+      if (!r || isNaN(pct) || pct === 0) return;
+      guardarHist();
+      fam.grupos[a].items.forEach(it => { it[1] = ajustarPrecio(it[1], pct); });
+      toast(`Precios de «${fam.grupos[a].t}» ${pct > 0 ? 'subidos' : 'bajados'} un ${Math.abs(pct)} %.`, 'ok', 5000, { txt: 'Deshacer', fn: deshacer });
+      pintar(); return;
+    }
 
     /* platos */
     case 'itemAdd': fam.grupos[a].items.push(['', '']); siguienteFoco = `[data-p="CARTA.${cartaTab}.grupos.${a}.items.${fam.grupos[a].items.length - 1}.0"]`; break;
     case 'itemUp': mover(fam.grupos[bb].items, a, -1); break;
     case 'itemDown': mover(fam.grupos[bb].items, a, 1); break;
-    case 'itemDel': {
-      const it = fam.grupos[bb].items[a];
-      if (it[0] && !conf(`¿Quitar «${it[0]}»?`)) return;
-      fam.grupos[bb].items.splice(a, 1); break;
-    }
+    case 'itemDel': nombreQuitado = fam.grupos[bb].items[a][0] || 'El plato'; fam.grupos[bb].items.splice(a, 1); break;
 
     /* tienda */
-    case 'secSel': tiendaSec = b.dataset.s; cambio = false; break;
+    case 'secSel': tiendaSec = b.dataset.s; break;
     case 'prodAdd': {
+      
       const s = tiendaSec === 'todos' ? D.SECCIONES[0].id : tiendaSec;
       const soloRec = ['alfajores', 'galletitas', 'almacen'].includes(s);
       D.PRODUCTOS.push({ id: 'n' + Date.now().toString(36), s, n: 'Nuevo producto', v: '', p: null, ...(soloRec ? { pickupOnly: true } : {}), g: 'caja' });
       siguienteFoco = `[data-p="PRODUCTOS.${D.PRODUCTOS.length - 1}.n"]`; break;
     }
-    case 'prodDel': if (!conf(`¿Borrar «${D.PRODUCTOS[a].n}» de la tienda? (Si solo se ha agotado, mejor márcalo como «Ocultar».)`)) return; D.PRODUCTOS.splice(a, 1); break;
+    case 'prodDel': nombreQuitado = D.PRODUCTOS[a].n; D.PRODUCTOS.splice(a, 1); break;
+    case 'precioMas': case 'precioMenos': {
+      const p = D.PRODUCTOS[a], d = b.dataset.act === 'precioMas' ? .1 : -.1;
+      p.p = Math.max(0, Math.round(((p.p ?? 0) + d) * 100) / 100);
+      const inp = b.parentElement.querySelector('input'); inp.value = coma(p.p);
+      refrescar(); return;
+    }
 
     /* reseñas */
     case 'resAdd': D.RESENAS.push({ a: '', e: 5, t: '' }); siguienteFoco = `[data-p="RESENAS.${D.RESENAS.length - 1}.a"]`; break;
     case 'resUp': mover(D.RESENAS, a, -1); break;
     case 'resDown': mover(D.RESENAS, a, 1); break;
-    case 'resDel': if (!conf('¿Quitar esta reseña?')) return; D.RESENAS.splice(a, 1); break;
+    case 'resDel': nombreQuitado = 'La reseña'; D.RESENAS.splice(a, 1); break;
+    case 'estrella': D.RESENAS[a].e = bb; break;
     default: return;
   }
-  if (cambio) cambiado();
+  if (nombreQuitado) toast(`${nombreQuitado} quitado.`, '', 6000, { txt: 'Deshacer', fn: deshacer });
   pintar();
+}
+
+/* Antes de cada acción que cambia la estructura, se guarda una foto para «Deshacer» */
+const ACCIONES_CON_HIST = /^(promo(Add|Up|Down|Del)|carta(Add|Del|Up|Down)|grp(Add|Up|Down|Del)|item(Add|Up|Down|Del)|prod(Add|Del)|res(Add|Up|Down|Del)|avisoQuitar|avisoPlantilla)$/;
+function alPulsarConHist(e) {
+  const b = e.target.closest('[data-act]');
+  if (b && b.tagName !== 'INPUT' && ACCIONES_CON_HIST.test(b.dataset.act)) guardarHist();
+  alPulsar(e);
 }
 
 /* ------------------------------------------------------------ fotos */
@@ -481,9 +624,10 @@ async function subirFoto(n, file) {
     const p = D.PRODUCTOS[n];
     const ruta = `assets/img/tienda/${p.id}-${Date.now().toString(36)}.jpg`;
     fotos.set(ruta, f);
+    guardarHist();
     p.i = ruta;
-    cambiado(); pintar();
-    toast('Foto lista. Se subirá al pulsar «Publicar cambios».', 'ok');
+    pintar();
+    toast('📸 Foto lista. Se subirá al pulsar «Publicar».', 'ok');
   } catch (err) { toast(err.message, 'mal'); }
 }
 
@@ -498,23 +642,32 @@ async function publicar() {
   D.RESENAS = D.RESENAS.filter(r => r.t.trim());
 
   const texto = Serializar.construir(D);
-  const b = $('#pub');
-  if (demo || !token) { descargar('data.js', texto); toast('Archivo descargado (modo prueba: no se ha publicado nada).'); marcar(false); pintar(); return; }
+  if (demo || !token) {
+    descargar('data.js', texto);
+    base = JSON.stringify(D); hist = [];
+    toast('Archivo descargado (modo prueba: no se ha publicado nada).'); pintar(); return;
+  }
 
-  b.disabled = true; b.textContent = 'Publicando…';
+  ['#pub', '#pub2'].forEach(id => { $(id).disabled = true; $(id).textContent = 'Publicando…'; });
   try {
     await subir(texto);
-    marcar(false);
-    const e = $('#estado'); e.className = 'estado ok'; $('span', e).textContent = 'Publicado';
-    toast('¡Publicado! En 1 o 2 minutos se verá en la web.', 'ok', 7000);
+    base = JSON.stringify(D); hist = [];
     pintar();
+    const e = $('#estado'); e.className = 'estado ok'; $('span', e).textContent = 'Publicado ✓';
+    toast('🎉 ¡Publicado! En 1 o 2 minutos se verá en la web.', 'ok', 8000);
   } catch (err) {
     const msg = err.status === 401 || err.status === 403 ? 'La clave ya no vale o no tiene permiso. Pide una nueva.'
       : err.status === 409 || err.status === 422 ? 'Alguien ha publicado mientras editabas. Recarga la página y vuelve a hacer el cambio.'
       : 'No se pudo publicar (' + (err.detalle || err.message) + '). Tus cambios siguen aquí; prueba otra vez.';
     toast(msg, 'mal', 9000);
-    marcar(true);
+    refrescar();
   }
+}
+
+function descartar() {
+  if (!confirm('¿Descartar todos los cambios que no has publicado? Volverá a como estaba.')) return;
+  D = JSON.parse(base); hist = []; sincronizar(); pintar();
+  toast('Cambios descartados.', 'ok', 2500);
 }
 
 /* ----------------------------------------------------------------- inicio */
@@ -530,8 +683,8 @@ async function entrar() {
     $('#login').hidden = true; $('#app').hidden = false;
     $('#demo').hidden = !demo;
     $('#verWeb').href = location.pathname.replace(/admin\.html$/, '') || './';
-    marcar(false);
-    pintar();
+    pestana = 'inicio';
+    pintar(true);
   } catch (err) {
     if (err.status === 401) { localStorage.removeItem(CLAVE); token = ''; mostrarLogin('Esa clave no es válida. Revisa que esté completa.'); }
     else if (err.status === 404) mostrarLogin('Esa clave no tiene acceso a la web. Pide una nueva.');
@@ -545,18 +698,23 @@ function arrancar() {
   if (m) { try { localStorage.setItem(CLAVE, decodeURIComponent(m[1])); } catch {} history.replaceState(null, '', location.pathname); }
   try { token = localStorage.getItem(CLAVE) || ''; } catch { token = ''; }
 
-  $('#vista').addEventListener('input', alEscribir);
-  $('#vista').addEventListener('change', alCambiar);
-  $('#vista').addEventListener('click', alPulsar);
+  const vista = $('#vista');
+  vista.addEventListener('input', alEscribir);
+  vista.addEventListener('change', alCambiar);
+  vista.addEventListener('click', alPulsarConHist);
+  vista.addEventListener('keydown', alTeclear);
   $('#tabs').addEventListener('click', e => {
     const b = e.target.closest('[data-tab]'); if (!b) return;
-    pestana = b.dataset.tab; pintar();
+    ir(b.dataset.tab);
   });
   $('#pub').addEventListener('click', publicar);
+  $('#pub2').addEventListener('click', publicar);
+  $('#undo').addEventListener('click', deshacer);
+  $('#descartar').addEventListener('click', descartar);
   $('#salir').addEventListener('click', () => {
-    if (sucio && !confirm('Hay cambios sin publicar. Si sales, se pierden. ¿Salir?')) return;
+    if (haySinPublicar() && !confirm('Hay cambios sin publicar. Si sales, se pierden. ¿Salir?')) return;
     try { localStorage.removeItem(CLAVE); } catch {}
-    sucio = false; token = ''; demo = false; mostrarLogin();
+    base = JSON.stringify(D); token = ''; demo = false; mostrarLogin();
   });
   $('#loginForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -566,8 +724,7 @@ function arrancar() {
     token = v; try { localStorage.setItem(CLAVE, v); } catch {}
     entrar();
   });
-
-  addEventListener('beforeunload', e => { if (sucio) { e.preventDefault(); e.returnValue = ''; } });
+  addEventListener('beforeunload', e => { if (D && haySinPublicar()) { e.preventDefault(); e.returnValue = ''; } });
 
   if (token) entrar(); else mostrarLogin();
 }

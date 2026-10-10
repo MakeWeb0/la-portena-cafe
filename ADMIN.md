@@ -41,17 +41,22 @@ repositorio.
 
 ## Uso (para el dueño)
 
+Al entrar sale **«¿Qué quieres hacer hoy?»** con botones grandes: poner un aviso, cambiar el
+horario, cambiar un precio, añadir un plato, producto de la tienda, poner una foto, reseñas y
+teléfono/dirección. Cada botón lleva directo al sitio y deja el cursor listo para escribir.
+
 | Pestaña | Qué se cambia |
 |---|---|
-| **Inicio y horario** | Aviso en franja ámbar («Cerrado por vacaciones…»), horario (la web pone sola «Abierto ahora»), teléfono, WhatsApp de pedidos, dirección, Instagram y las promos de la pizarra de la portada. |
-| **La carta** | Cualquier plato o bebida: nombre y precio. Añadir, quitar y reordenar platos, familias (Café, Tartas…) y secciones (Desayuno, Salado…). Hay buscador. |
-| **Tienda** | Precio, nombre y formato de cada producto, **foto** (se reduce sola), «Solo recogida», «Ocultar (agotado)», añadir y borrar productos. Sin precio → sale «Precio en breve». |
-| **Reseñas** | La nota y el número de reseñas de Google, las palabras que más se repiten y las reseñas que se muestran (copiadas de Google, sin inventar). |
+| **Inicio** | Los atajos de arriba y los 3 pasos (cambiar → Publicar → 1–2 min). |
+| **Horario y avisos** | Botones de aviso listos («Cerrado por vacaciones», «obras», «festivo», «horario especial») que se editan; interruptor *Abierto/Cerrado* por día y horas. La web pone sola «Abierto ahora». |
+| **La carta** | Buscador, nombre y precio de cada plato (con **Intro** se salta al siguiente y se crea uno nuevo), botón **％** para subir o bajar todos los precios de una familia, mover y quitar platos, familias y secciones. |
+| **Tienda** | Foto (toca para cambiarla; se reduce sola), precio con **− / ＋** (10 en 10 céntimos), interruptores *Disponible* y *Solo recogida*, añadir y borrar productos. Sin precio → «Precio en breve». |
+| **Reseñas** | Nota y número de reseñas de Google, palabras destacadas y reseñas con **estrellas** que se tocan. |
+| **Datos del local** | Teléfono, WhatsApp de pedidos, dirección, Instagram y las promos de la pizarra de la portada. |
 
-Arriba a la derecha:
-
-- **Publicar cambios** (se activa al cambiar algo): sube todo a la web.
-- **Ver la web**: abre la web en otra pestaña.
+Arriba: **↶ Deshacer** (recupera lo último que se quitó o movió; nada pregunta «¿seguro?»,
+todo se puede deshacer), **Ver la web** y **Publicar cambios**. Cuando hay algo sin publicar
+aparece además una **barra fija abajo** con *Descartar* y *Publicar ahora*.
 
 Los precios se pueden escribir como `1,5` o `1.5`: el panel los deja en `1,50 €`.
 Si un precio lleva varias medidas (`3 € / 6 € / 8 €`), se respeta tal cual.

@@ -37,7 +37,8 @@
     <div class="top__brand"><b>La Porteña</b><span>Panel de control</span></div>
     <div class="top__act">
       <span class="estado" id="estado" aria-live="polite"><i></i><span>Sin cambios</span></span>
-      <a class="enlace" id="verWeb" href="./" target="_blank" rel="noopener">Ver la web ↗</a>
+      <button class="btn btn--ghost" id="undo" type="button" disabled title="Deshacer lo último que has quitado o movido">↶ <span>Deshacer</span></button>
+      <a class="btn btn--ghost" id="verWeb" href="./" target="_blank" rel="noopener">Ver la web ↗</a>
       <button class="btn btn--solid" id="pub" type="button" disabled>Publicar cambios</button>
     </div>
   </header>
@@ -45,10 +46,12 @@
   <p class="demo" id="demo" hidden><b>Modo prueba.</b> Puedes cambiar cosas para ver cómo funciona, pero no se publica nada: el botón descarga el archivo en lugar de subirlo.</p>
 
   <nav class="tabs" id="tabs" aria-label="Qué quieres cambiar">
-    <button data-tab="inicio" class="on">Inicio y horario</button>
-    <button data-tab="carta">La carta</button>
-    <button data-tab="tienda">Tienda</button>
-    <button data-tab="resenas">Reseñas</button>
+    <button data-tab="inicio" class="on"><i>🏠</i> Inicio</button>
+    <button data-tab="horario"><i>⏰</i> Horario y avisos</button>
+    <button data-tab="carta"><i>🍽️</i> La carta</button>
+    <button data-tab="tienda"><i>🛒</i> Tienda</button>
+    <button data-tab="resenas"><i>⭐</i> Reseñas</button>
+    <button data-tab="local"><i>📍</i> Datos del local</button>
   </nav>
 
   <main class="vista" id="vista"></main>
@@ -57,6 +60,15 @@
     <p>Los cambios se ven en la web 1 o 2 minutos después de pulsar <b>Publicar cambios</b>.</p>
     <button class="enlace" id="salir" type="button">Cerrar sesión</button>
   </footer>
+
+  <!-- barra fija: aparece cuando hay algo sin publicar -->
+  <div class="barra" id="barra" hidden>
+    <span><i></i> Tienes cambios sin publicar</span>
+    <span class="barra__b">
+      <button class="btn btn--ghost" id="descartar" type="button">Descartar</button>
+      <button class="btn btn--solid" id="pub2" type="button">Publicar ahora</button>
+    </span>
+  </div>
 </div>
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
