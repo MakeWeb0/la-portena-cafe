@@ -61,6 +61,24 @@ aparece además una **barra fija abajo** con *Descartar* y *Publicar ahora*.
 Los precios se pueden escribir como `1,5` o `1.5`: el panel los deja en `1,50 €`.
 Si un precio lleva varias medidas (`3 € / 6 € / 8 €`), se respeta tal cual.
 
+### Validación de lo que se escribe
+
+Para que nadie meta datos raros, cada campo tiene su regla (en `REGLAS`, `js/admin.js`):
+
+- **Teléfono:** solo números y espacios; 9 cifras empezando por 6, 7, 8 o 9 (acepta `+34`); lo deja como `865 809 500`.
+- **WhatsApp:** con el 34 delante (si se escriben solo las 9 cifras, lo añade).
+- **Instagram:** acepta `@usuario` o el enlace del perfil y lo deja como enlace completo.
+- **Enlaces** (Maps, Google): tienen que parecer una dirección web.
+- **Dirección y ciudad:** sin caracteres raros; la ciudad, sin números.
+- **Precios:** solo números (`2,50`, `3 € / 6 €`); se escriben como `2,50 €`. En la tienda, entre 0 y 999,99.
+- **Horas:** válidas y con el cierre después de la apertura.
+- **Nota y nº de reseñas:** de 1 a 5 y número entero.
+- **Textos:** se quitan `<` y `>` y hay un máximo de letras por campo.
+
+Mientras se escribe se descartan los caracteres que no valen; al salir del campo se corrige el
+formato y, si algo está mal, se marca en rojo con la explicación. **No se puede publicar con
+campos en rojo**: al pulsar Publicar, el panel lleva al primero.
+
 ### Modo prueba
 
 En la pantalla de entrada, la contraseña **`1234`** abre el panel con los datos de la web

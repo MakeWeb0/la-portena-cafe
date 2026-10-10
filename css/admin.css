@@ -326,3 +326,8 @@ body.con-barra .pie { padding-bottom: 110px; }
   .tabs__pie .ic { width: 20px; height: 20px; }
   body.menu-abierto { overflow: hidden; }
 }
+
+/* ------------------------------------------------------------ validación */
+input.err, textarea.err, select.err { border-color: var(--bad) !important; box-shadow: 0 0 0 3px rgba(239,122,108,.18) !important; }
+small.error { grid-column: 1 / -1; display: block; margin-top: 4px; color: var(--bad); font-size: .88rem; line-height: 1.35; }
+small.error::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 8px; border-radius: 50%; background: var(--bad); vertical-align: 1px; }

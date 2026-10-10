@@ -167,6 +167,7 @@ function guardarHist() { hist.push(JSON.stringify(D)); if (hist.length > 30) his
 function deshacer() {
   if (!hist.length) return;
   D = JSON.parse(hist.pop());
+  errores.clear(); crudos.clear();
   sincronizar(); pintar(); refrescar();
   toast('Deshecho.', 'ok', 1800);
 }
@@ -473,6 +474,14 @@ function pintar(arriba = false) {
   $('#vista').innerHTML = VISTAS[pestana]();
   $$('#tabs [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === pestana));
   $('#secActual').textContent = $(`#tabs [data-tab="${pestana}"]`)?.textContent.trim() || '';
+  $$('[data-p]').forEach(el => {
+    const ruta = el.dataset.p, regla = buscarRegla(ruta);
+    if (regla?.max && el.type === 'text' || regla?.max && el.tagName === 'TEXTAREA') el.maxLength = regla.max;
+    if (crudos.has(ruta)) el.value = crudos.get(ruta);
+    if (errores.has(ruta)) pintarError(el, ruta, errores.get(ruta));
+  });
+  const dest = $('[data-destacados]');
+  if (dest) { dest.maxLength = 220; if (errores.has('DESTACADOS')) { dest.value = crudos.get('DESTACADOS') ?? dest.value; pintarError(dest, 'DESTACADOS', errores.get('DESTACADOS')); } }
   filtrar();
   scrollTo(0, y);
   if (siguienteFoco) { const f = $(siguienteFoco); f?.focus(); f?.scrollIntoView?.({ block: 'center' }); siguienteFoco = null; }
@@ -500,47 +509,270 @@ function filtrar() {
 }
 
 /* ------------------------------------------------------------- eventos */
+/* ===================================================== validación de datos
+   Cada campo de texto tiene su regla: qué se admite, cuánto puede medir y cómo
+   se deja escrito. Mientras se teclea se quitan los caracteres que no valen;
+   al salir del campo se comprueba, se corrige el formato (teléfono, precio…) y
+   si algo está mal se marca en rojo con una explicación. No se puede publicar
+   con campos en rojo.                                                       */
+const errores = new Map();    // ruta → mensaje
+const crudos = new Map();     // ruta → lo que escribió la persona (si no valía), para no perderlo al repintar
+
+const limpia = v => String(v ?? '').replace(/[<>\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim();
+const numero = v => { const n = parseFloat(String(v).replace(',', '.')); return String(v).trim() === '' || isNaN(n) ? null : n; };
+const TXT = (max, req = false) => v => {
+  const t = limpia(v);
+  if (t.length > max) return { v: t, e: `Es demasiado largo (máximo ${max} letras).` };
+  return req && !t ? { v: t, e: 'No puede estar vacío.' } : { v: t };
+};
+
+const vTel = v => {
+  let d = String(v).replace(/[\s().-]/g, '').replace(/^00/, '+');
+  if (!d) return { v: '', e: 'Falta el teléfono.' };
+  if (!/^\+?\d+$/.test(d)) return { v, e: 'Solo números y espacios (y el + si lleva prefijo).' };
+  if (d.startsWith('+') && !d.startsWith('+34')) return d.length >= 9 && d.length <= 16 ? { v: d } : { v, e: 'Ese teléfono internacional no parece correcto.' };
+  const n = d.replace(/^\+34/, '');
+  if (!/^[6-9]\d{8}$/.test(n)) return { v, e: 'Un teléfono español tiene 9 cifras y empieza por 6, 7, 8 o 9 (ej.: 865 809 500).' };
+  return { v: n.replace(/(\d{3})(\d{3})(\d{3})/, '$1 $2 $3') };
+};
+const vWa = v => {
+  let d = String(v).replace(/\D/g, '');
+  if (!d) return { v: '', e: 'Falta el WhatsApp.' };
+  if (/^[6-9]\d{8}$/.test(d)) d = '34' + d;
+  if (/^34[6-9]\d{8}$/.test(d) || (/^[1-9]\d{9,14}$/.test(d) && !d.startsWith('34'))) return { v: d };
+  return { v, e: 'Escríbelo con el 34 delante y 9 cifras (ej.: 34865809500), o solo las 9 cifras.' };
+};
+const vInsta = v => {
+  const t = String(v).trim();
+  if (!t) return { v: '', e: 'Falta el Instagram.' };
+  const m = t.match(/^(?:https?:\/\/)?(?:www\.)?instagram\.com\/([A-Za-z0-9._]{1,30})\/?(?:\?.*)?$/i) || t.match(/^@?([A-Za-z0-9._]{1,30})$/);
+  return m ? { v: `https://www.instagram.com/${m[1]}/` } : { v, e: 'Escribe el usuario (ej.: @laportenialicante) o el enlace de su perfil de Instagram.' };
+};
+const vUrl = v => {
+  let t = String(v).trim();
+  if (!t) return { v: '' };
+  if (!/^https?:\/\//i.test(t)) t = 'https://' + t;
+  try { const u = new URL(t); if (!/\./.test(u.hostname) || /\s/.test(t)) throw 0; return { v: u.href }; }
+  catch { return { v, e: 'Eso no parece un enlace (debe empezar por https://…).' }; }
+};
+const vDir = v => {
+  const t = limpia(v);
+  if (t.length < 3) return { v: t, e: 'Escribe la dirección (calle y número).' };
+  return /^[\p{L}\d\s.,'’ºª\-/#·()]+$/u.test(t) ? { v: t } : { v: t, e: 'La dirección lleva caracteres raros. Usa letras, números y signos normales.' };
+};
+const vCiudad = v => {
+  const t = limpia(v);
+  return /^[\p{L}\s.'’-]{2,40}$/u.test(t) ? { v: t } : { v: t, e: 'Escribe solo el nombre de la ciudad (sin números).' };
+};
+const vPrecio = v => {
+  const t = String(v).trim().replace(/\s+/g, ' ');
+  if (!t) return { v: '', e: 'Falta el precio.' };
+  const n = '\\d{1,3}(?:[.,]\\d{1,2})?';
+  if (!new RegExp(`^${n}\\s?€?(?:\\s?/\\s?${n}\\s?€?)*$`).test(t))
+    return { v: t, e: 'Escribe solo el precio, por ejemplo 2,50. Si hay varias medidas, sepáralas con « / » (3 € / 6 €).' };
+  const partes = t.split('/').map(p => {
+    const x = parseFloat(p.replace(/[^\d.,]/g, '').replace(',', '.'));
+    return (Number.isInteger(x) && !/[.,]/.test(p) && t.includes('/') ? String(x) : coma(x)) + ' €';
+  });
+  return { v: partes.join(' / ') };
+};
+const vPrecioNum = v => {
+  const t = String(v).trim();
+  if (t === '') return { v: '', val: null };
+  if (!/^\d{1,3}(?:[.,]\d{1,2})?$/.test(t)) return { v: t, e: 'Solo números, por ejemplo 5,80 (entre 0 y 999,99).' };
+  const n = numero(t);
+  return { v: coma(n), val: n };
+};
+const vRating = v => {
+  const n = numero(v);
+  return n != null && n >= 1 && n <= 5 ? { v: String(Math.round(n * 10) / 10).replace('.', ','), val: Math.round(n * 10) / 10 } : { v, e: 'La nota va de 1 a 5 (ej.: 4,5).' };
+};
+const vEntero = v => {
+  const t = String(v).trim();
+  return /^\d{1,6}$/.test(t) ? { v: t, val: +t } : { v, e: 'Escribe solo un número entero (ej.: 471).' };
+};
+const vHora = (v, ruta) => {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) return { v, e: 'Pon una hora válida (ej.: 08:00).' };
+  const k = ruta.split('.')[2], i = +ruta.slice(-1);
+  const par = [...(D.CONFIG.abre[k] || ['00:00', '23:59'])]; par[i] = v;
+  return par[0] >= par[1] ? { v, e: 'La hora de cierre tiene que ser después de la de apertura.' } : { v };
+};
+const vDestacados = v => {
+  const lista = v.split(',').map(limpia).filter(Boolean);
+  if (lista.length > 8) return { val: lista, e: 'Pon como mucho 8 palabras.' };
+  if (lista.some(p => p.length > 24)) return { val: lista, e: 'Cada palabra o frase puede tener como mucho 24 letras.' };
+  return { val: lista };
+};
+
+const REGLAS = [
+  [/^CONFIG\.telefono$/, { fn: vTel, live: /[^\d\s+().-]/g, max: 20 }],
+  [/^CONFIG\.whatsapp$/, { fn: vWa, live: /[^\d\s+]/g, max: 18 }],
+  [/^CONFIG\.instagram$/, { fn: vInsta, max: 120 }],
+  [/^CONFIG\.(mapa|google)$/, { fn: vUrl, max: 600 }],
+  [/^CONFIG\.direccion$/, { fn: vDir, max: 80 }],
+  [/^CONFIG\.ciudad$/, { fn: vCiudad, max: 40 }],
+  [/^CONFIG\.aviso$/, { fn: TXT(140), max: 140 }],
+  [/^CONFIG\.rating$/, { fn: vRating, live: /[^\d.,]/g, max: 4 }],
+  [/^CONFIG\.resenas$/, { fn: vEntero, live: /\D/g, max: 6 }],
+  [/^CONFIG\.abre\.(semana|dom)\.[01]$/, { fn: vHora }],
+  [/^(PROMOS\.\d+\.p|CARTA\.\d+\.grupos\.\d+\.items\.\d+\.1)$/, { fn: vPrecio, live: /[^\d\s.,€/]/g, max: 40 }],
+  [/^PROMOS\.\d+\.t$/, { fn: TXT(50), max: 50 }],
+  [/^CARTA\.\d+\.tab$/, { fn: TXT(30, true), max: 30 }],
+  [/^CARTA\.\d+\.grupos\.\d+\.t$/, { fn: TXT(40), max: 40 }],
+  [/^CARTA\.\d+\.grupos\.\d+\.items\.\d+\.0$/, { fn: TXT(160), max: 160 }],
+  [/^CARTA\.\d+\.grupos\.\d+\.nota$/, { fn: TXT(120), max: 120 }],
+  [/^PRODUCTOS\.\d+\.n$/, { fn: TXT(80), max: 80 }],
+  [/^PRODUCTOS\.\d+\.v$/, { fn: TXT(120), max: 120 }],
+  [/^PRODUCTOS\.\d+\.p$/, { fn: vPrecioNum, live: /[^\d.,]/g, max: 6 }],
+  [/^RESENAS\.\d+\.a$/, { fn: TXT(60), max: 60 }],
+  [/^RESENAS\.\d+\.t$/, { fn: TXT(700), max: 700 }]
+];
+const buscarRegla = ruta => (REGLAS.find(([re]) => re.test(ruta)) || [])[1];
+
+/* Guarda en los datos lo que ya está validado */
+function guardar(ruta, r) {
+  let val = 'val' in r ? r.val : r.v;
+  if (ruta.endsWith('.nota') && val === '') val = undefined;
+  poner(D, ruta, val);
+  if (ruta.startsWith('CONFIG.')) sincronizar();
+}
+
+/* Marca / desmarca un campo en rojo con su explicación */
+function pintarError(el, ruta, msg) {
+  el.classList.toggle('err', !!msg);
+  el.setAttribute('aria-invalid', msg ? 'true' : 'false');
+  const cont = el.closest('.campo, .fila, .prod, .res, .horas') || el.parentElement;
+  $$('small.error', cont).filter(x => x.dataset.e === ruta).forEach(x => x.remove());
+  if (msg) {
+    const sm = document.createElement('small');
+    sm.className = 'error'; sm.dataset.e = ruta; sm.setAttribute('role', 'alert'); sm.textContent = msg;
+    cont.appendChild(sm);
+  }
+}
+function ponerError(ruta, msg, el) { errores.set(ruta, msg); crudos.set(ruta, el.value); pintarError(el, ruta, msg); }
+function quitarError(ruta, el) { errores.delete(ruta); crudos.delete(ruta); if (el) pintarError(el, ruta, ''); }
+
+/* Aplica la regla de un campo al salir de él (o al pulsar Publicar) */
+function aplicar(el, ruta, regla) {
+  const r = regla.fn(el.value, ruta);
+  if (r.e) { ponerError(ruta, r.e, el); return false; }
+  if ('v' in r) el.value = r.v;
+  guardar(ruta, r);
+  quitarError(ruta, el);
+  return true;
+}
+
 function alEscribir(e) {
   const el = e.target;
   if (el.id === 'buscar') { filtrar(); return; }
-  if (el.dataset.destacados !== undefined) { D.DESTACADOS = el.value.split(',').map(s => s.trim()).filter(Boolean); refrescar(); return; }
+  if (el.dataset.destacados !== undefined) {
+    el.value = el.value.replace(/[<>]/g, '');
+    const r = vDestacados(el.value);
+    if (!r.e) { D.DESTACADOS = r.val; quitarError('DESTACADOS', el); }
+    refrescar(); return;
+  }
   const ruta = el.dataset.p;
   if (!ruta) return;
-  let v = el.value;
-  if (el.dataset.k === 'num') {
-    const n = parseFloat(v.replace(',', '.'));
-    v = v.trim() === '' || isNaN(n) ? null : n;
+  const regla = buscarRegla(ruta);
+  if (!regla) {                                         // selectores y demás
+    poner(D, ruta, el.dataset.k === 'num' ? numero(el.value) : el.value);
+    if (ruta.startsWith('CONFIG.')) sincronizar();
+    refrescar(); return;
   }
-  poner(D, ruta, v);
-  if (ruta.startsWith('CONFIG.')) sincronizar();
-  if (ruta.endsWith('.nota') && v === '') poner(D, ruta, undefined);
+  if (el.tagName === 'INPUT' && el.type === 'time') { refrescar(); return; }   // las horas se comprueban al elegirlas
+  let v = el.value.replace(/[<>]/g, '');
+  if (regla.live) v = v.replace(regla.live, '');
+  if (v !== el.value) el.value = v;
+  const r = regla.fn(el.value, ruta);
+  if (!r.e) { guardar(ruta, r); if (errores.has(ruta)) quitarError(ruta, el); }   // mientras escribe no se reformatea
   refrescar();
 }
 
 function alCambiar(e) {
   const el = e.target;
-  if (el.dataset.k === 'precio') {
-    const v = precio(el.value);
-    el.value = v; poner(D, el.dataset.p, v); refrescar();
+  if (el.dataset.destacados !== undefined) {
+    const r = vDestacados(el.value);
+    if (r.e) { errores.set('DESTACADOS', r.e); crudos.set('DESTACADOS', el.value); pintarError(el, 'DESTACADOS', r.e); }
+    else { D.DESTACADOS = r.val; el.value = r.val.join(', '); quitarError('DESTACADOS', el); }
+    refrescar(); return;
   }
-  if (/^PRODUCTOS\.\d+\.p$/.test(el.dataset.p || '') && el.value.trim() !== '') {
-    const n = parseFloat(el.value.replace(',', '.'));
-    if (!isNaN(n)) el.value = coma(n);
+  const ruta = el.dataset.p, regla = ruta && buscarRegla(ruta);
+  if (regla) {
+    aplicar(el, ruta, regla);
+    if (/^CONFIG\.abre\./.test(ruta)) {                  // la otra hora del mismo día también hay que revisarla
+      const otra = ruta.slice(0, -1) + (ruta.slice(-1) === '0' ? '1' : '0'), elOtra = $(`[data-p="${otra}"]`);
+      if (elOtra) aplicar(elOtra, otra, regla);
+    }
+    refrescar();
   }
   if (el.dataset.pb) {
-    const ruta = el.dataset.pb;
+    const rutaPb = el.dataset.pb;
     const marcado = el.dataset.inv ? !el.checked : el.checked;   // «Disponible» es lo contrario de «off»
-    poner(D, ruta, marcado ? true : undefined);
+    poner(D, rutaPb, marcado ? true : undefined);
     refrescar();
-    if (ruta.endsWith('.off')) el.closest('.prod')?.classList.toggle('oculto', marcado);
+    if (rutaPb.endsWith('.off')) el.closest('.prod')?.classList.toggle('oculto', marcado);
   }
   if (el.dataset.cerrado) {
     const k = el.dataset.cerrado;
     D.CONFIG.abre[k] = el.checked ? (k === 'dom' ? ['09:00', '14:00'] : ['08:00', '22:00']) : null;
+    errores.forEach((_, r) => { if (r.startsWith(`CONFIG.abre.${k}.`)) quitarError(r); });
     sincronizar(); pintar();
   }
   if (el.dataset.foto !== undefined && el.files[0]) subirFoto(+el.dataset.foto, el.files[0]);
-  if (/^PRODUCTOS\.\d+\.s$/.test(el.dataset.p || '')) pintar();
+  if (/^PRODUCTOS\.\d+\.s$/.test(ruta || '')) pintar();
+}
+
+/* Repasa TODOS los datos (también los que no se han tocado) antes de publicar */
+function validarTodo() {
+  const falla = [];
+  const probar = (ruta, valor, tab) => {
+    const regla = buscarRegla(ruta); if (!regla) return;
+    const r = regla.fn(valor == null ? '' : String(valor), ruta);
+    if (r.e) { errores.set(ruta, r.e); falla.push({ ruta, tab }); } else guardar(ruta, r);
+  };
+  const C = D.CONFIG;
+  ['telefono', 'whatsapp', 'instagram', 'mapa', 'google', 'direccion', 'ciudad'].forEach(k => probar('CONFIG.' + k, C[k], 'local'));
+  probar('CONFIG.aviso', C.aviso, 'horario');
+  ['semana', 'dom'].forEach(k => C.abre[k]?.forEach((h, i) => probar(`CONFIG.abre.${k}.${i}`, h, 'horario')));
+  probar('CONFIG.rating', C.rating, 'resenas'); probar('CONFIG.resenas', C.resenas, 'resenas');
+  D.PROMOS.forEach((p, i) => { if (!p.t.trim()) return; probar(`PROMOS.${i}.t`, p.t, 'local'); probar(`PROMOS.${i}.p`, p.p, 'local'); });
+  D.CARTA.forEach((c, ci) => {
+    probar(`CARTA.${ci}.tab`, c.tab, 'carta');
+    c.grupos.forEach((g, gi) => {
+      probar(`CARTA.${ci}.grupos.${gi}.t`, g.t, 'carta');
+      if (g.nota) probar(`CARTA.${ci}.grupos.${gi}.nota`, g.nota, 'carta');
+      g.items.forEach((it, ii) => {
+        if (!it[0].trim()) return;                       // los vacíos se quitan al publicar
+        probar(`CARTA.${ci}.grupos.${gi}.items.${ii}.0`, it[0], 'carta');
+        probar(`CARTA.${ci}.grupos.${gi}.items.${ii}.1`, it[1], 'carta');
+      });
+    });
+  });
+  D.PRODUCTOS.forEach((p, n) => {
+    if (!p.n.trim()) return;
+    probar(`PRODUCTOS.${n}.n`, p.n, 'tienda');
+    if (p.v) probar(`PRODUCTOS.${n}.v`, p.v, 'tienda');
+    if (p.p != null) probar(`PRODUCTOS.${n}.p`, p.p, 'tienda');
+  });
+  D.RESENAS.forEach((r, i) => { if (!r.t.trim()) return; probar(`RESENAS.${i}.a`, r.a, 'resenas'); probar(`RESENAS.${i}.t`, r.t, 'resenas'); });
+  return falla;
+}
+
+function tabDeRuta(r) {
+  if (/^CONFIG\.(aviso|abre)/.test(r)) return 'horario';
+  if (/^(CONFIG\.(rating|resenas)|RESENAS|DESTACADOS)/.test(r)) return 'resenas';
+  if (/^(CONFIG|PROMOS)/.test(r)) return 'local';
+  return /^CARTA/.test(r) ? 'carta' : 'tienda';
+}
+
+/* Lleva a la persona al primer campo en rojo */
+function irAlError() {
+  const ruta = [...errores.keys()][0];
+  pestana = tabDeRuta(ruta);
+  const m = ruta.match(/^CARTA\.(\d+)\./); if (m) cartaTab = +m[1];
+  if (pestana === 'tienda') tiendaSec = 'todos';
+  siguienteFoco = ruta === 'DESTACADOS' ? '[data-destacados]' : `[data-p="${ruta}"]`;
+  cerrarMenu(); pintar(true);
 }
 
 /* Intro en un precio de la carta → nuevo plato justo debajo */
@@ -624,7 +856,7 @@ function alPulsar(e) {
     case 'precioMas': case 'precioMenos': {
       const p = D.PRODUCTOS[a], d = b.dataset.act === 'precioMas' ? .1 : -.1;
       p.p = Math.max(0, Math.round(((p.p ?? 0) + d) * 100) / 100);
-      const inp = b.parentElement.querySelector('input'); inp.value = coma(p.p);
+      const inp = b.parentElement.querySelector('input'); inp.value = coma(p.p); quitarError(`PRODUCTOS.${a}.p`, inp);
       refrescar(); return;
     }
 
@@ -644,7 +876,7 @@ function alPulsar(e) {
 const ACCIONES_CON_HIST = /^(promo(Add|Up|Down|Del)|carta(Add|Del|Up|Down)|grp(Add|Up|Down|Del)|item(Add|Up|Down|Del)|prod(Add|Del)|res(Add|Up|Down|Del)|avisoQuitar|avisoPlantilla)$/;
 function alPulsarConHist(e) {
   const b = e.target.closest('[data-act]');
-  if (b && b.tagName !== 'INPUT' && ACCIONES_CON_HIST.test(b.dataset.act)) guardarHist();
+  if (b && b.tagName !== 'INPUT' && ACCIONES_CON_HIST.test(b.dataset.act)) { guardarHist(); errores.clear(); crudos.clear(); }
   alPulsar(e);
 }
 
@@ -683,6 +915,12 @@ async function subirFoto(n, file) {
 /* --------------------------------------------------------------- publicar */
 async function publicar() {
   sincronizar();
+  validarTodo();
+  if (errores.size) {
+    irAlError();
+    toast(`Revisa ${errores.size === 1 ? 'el campo marcado' : 'los ' + errores.size + ' campos marcados'} en rojo antes de publicar.`, 'mal', 7000);
+    return;
+  }
   const vacios = D.PRODUCTOS.filter(p => !p.n.trim()).length + D.CARTA.reduce((a, c) => a + c.grupos.reduce((b, g) => b + g.items.filter(i => !i[0].trim()).length, 0), 0);
   if (vacios && !confirm(`Hay ${vacios} cosa${vacios > 1 ? 's' : ''} sin nombre (platos o productos vacíos). Se quitarán al publicar. ¿Seguimos?`)) return;
   D.PRODUCTOS = D.PRODUCTOS.filter(p => p.n.trim());
@@ -715,7 +953,7 @@ async function publicar() {
 
 function descartar() {
   if (!confirm('¿Descartar todos los cambios que no has publicado? Volverá a como estaba.')) return;
-  D = JSON.parse(base); hist = []; sincronizar(); pintar();
+  D = JSON.parse(base); hist = []; errores.clear(); crudos.clear(); sincronizar(); pintar();
   toast('Cambios descartados.', 'ok', 2500);
 }
 
