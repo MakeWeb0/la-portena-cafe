@@ -34,7 +34,9 @@
 <!-- ================================================================ PANEL -->
 <div class="app" id="app" hidden>
   <header class="top">
+    <button class="menu-btn" id="menuBtn" type="button" aria-label="Abrir el menú" aria-expanded="false" aria-controls="tabs"><i data-ic="menu"></i></button>
     <div class="top__brand"><b>La Porteña</b><span>Panel de control</span></div>
+    <span class="top__sec" id="secActual" aria-live="polite"></span>
     <div class="top__act">
       <span class="estado" id="estado" aria-live="polite"><i></i><span>Sin cambios</span></span>
       <button class="btn btn--ghost" id="undo" type="button" disabled title="Deshacer lo último que has quitado o movido"><i data-ic="undo"></i> <span>Deshacer</span></button>
@@ -45,20 +47,27 @@
 
   <p class="demo" id="demo" hidden><b>Modo prueba.</b> Puedes cambiar cosas para ver cómo funciona, pero no se publica nada: el botón descarga el archivo en lugar de subirlo.</p>
 
+  <div class="scrim" id="scrim" hidden></div>
   <nav class="tabs" id="tabs" aria-label="Qué quieres cambiar">
+    <div class="tabs__cab"><b>La Porteña</b><span>Panel de control</span>
+      <button class="ib" id="menuCerrar" type="button" aria-label="Cerrar el menú"><i data-ic="x"></i></button></div>
     <button data-tab="inicio" class="on"><i data-ic="home"></i> Inicio</button>
     <button data-tab="horario"><i data-ic="clock"></i> Horario y avisos</button>
     <button data-tab="carta"><i data-ic="utensils"></i> La carta</button>
     <button data-tab="tienda"><i data-ic="cart"></i> Tienda</button>
     <button data-tab="resenas"><i data-ic="star"></i> Reseñas</button>
     <button data-tab="local"><i data-ic="pin"></i> Datos del local</button>
+    <div class="tabs__pie">
+      <a href="./" target="_blank" rel="noopener" id="verWeb2"><i data-ic="external"></i> Ver la web</a>
+      <button type="button" data-salir>Cerrar sesión</button>
+    </div>
   </nav>
 
   <main class="vista" id="vista"></main>
 
   <footer class="pie">
     <p>Los cambios se ven en la web 1 o 2 minutos después de pulsar <b>Publicar cambios</b>.</p>
-    <button class="enlace" id="salir" type="button">Cerrar sesión</button>
+    <button class="enlace" type="button" data-salir>Cerrar sesión</button>
   </footer>
 
   <!-- barra fija: aparece cuando hay algo sin publicar -->

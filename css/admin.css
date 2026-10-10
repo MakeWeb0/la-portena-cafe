@@ -293,3 +293,36 @@ body.con-barra .pie { padding-bottom: 110px; }
 .buscar-w .ic { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; color: var(--chalk-3); pointer-events: none; }
 .buscar-w .buscar { padding-left: 44px; max-width: none; }
 @media (max-width: 700px) { .tile i { width: 46px; height: 46px; } .tile i .ic { width: 24px; height: 24px; } }
+
+/* ---------------------------------------------- menú lateral (solo móvil) */
+.menu-btn, .top__sec, .tabs__cab, .tabs__pie, .scrim { display: none; }
+@media (max-width: 760px) {
+  .menu-btn { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line-2); color: var(--chalk); }
+  .menu-btn .ic { width: 24px; height: 24px; }
+  .menu-btn:active { border-color: var(--amber); color: var(--amber); }
+  .top { flex-wrap: nowrap; gap: 10px; }
+  .top__brand { flex: none; }
+  .top__brand b { font-size: 1.5rem; }
+  .top__sec { display: block; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--amber); font-weight: 500; font-size: .95rem; }
+  .top__act { margin-left: 0; }
+  .estado span { display: none; }                 /* en el móvil basta el puntito */
+  .estado { gap: 0; }
+
+  .scrim { display: block; position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,.62); backdrop-filter: blur(2px); }
+  .scrim[hidden] { display: none; }
+  .tabs { position: fixed; top: 0; left: 0; bottom: 0; z-index: 60; width: min(84vw, 310px); flex-direction: column; gap: 4px; padding: 0 0 20px; overflow-y: auto;
+    background: var(--bg-2); border: 0; border-right: 1px solid var(--line-2); box-shadow: 20px 0 60px rgba(0,0,0,.6);
+    transform: translateX(-104%); visibility: hidden; transition: transform .3s cubic-bezier(.2,.8,.2,1), visibility 0s .3s; }
+  .tabs.abierto { transform: none; visibility: visible; transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+  .tabs__cab { display: flex; align-items: center; gap: 10px; padding: 16px 16px 14px 20px; margin-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .tabs__cab b { font-family: var(--f-script); font-weight: 400; font-size: 1.9rem; line-height: 1; }
+  .tabs__cab span { font-size: .66rem; letter-spacing: .2em; text-transform: uppercase; color: var(--chalk-3); }
+  .tabs__cab .ib { margin-left: auto; }
+  .tabs [data-tab] { display: flex; align-items: center; gap: 14px; margin: 0 12px; padding: 15px 16px; border-radius: 12px; border: 1px solid transparent; font-size: 1.05rem; text-align: left; color: var(--chalk-2); }
+  .tabs [data-tab] .ic { width: 22px; height: 22px; margin: 0; }
+  .tabs [data-tab].on { background: rgba(245,176,76,.12); border-color: rgba(245,176,76,.4); color: var(--amber); margin-bottom: 0; }
+  .tabs__pie { display: grid; gap: 4px; margin: auto 12px 0; padding-top: 14px; border-top: 1px solid var(--line); }
+  .tabs__pie a, .tabs__pie button { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-radius: 12px; color: var(--chalk-3); font-size: .95rem; text-decoration: none; text-align: left; }
+  .tabs__pie .ic { width: 20px; height: 20px; }
+  body.menu-abierto { overflow: hidden; }
+}

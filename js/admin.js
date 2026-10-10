@@ -59,6 +59,7 @@ const IC = {
   right: '<path d="M9 6l6 6-6 6"/>',
   percent: '<path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.2"/><circle cx="17" cy="17" r="2.2"/>',
   check: '<path d="M5 12l5 5 9-10"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
   external: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5H5V6h5"/>'
 };
 const ic = n => `<svg class="ic ic--${n}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`;
@@ -470,14 +471,27 @@ const VISTAS = { inicio: vistaInicio, horario: vistaHorario, carta: vistaCarta, 
 function pintar(arriba = false) {
   const y = arriba ? 0 : scrollY;
   $('#vista').innerHTML = VISTAS[pestana]();
-  $$('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === pestana));
+  $$('#tabs [data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === pestana));
+  $('#secActual').textContent = $(`#tabs [data-tab="${pestana}"]`)?.textContent.trim() || '';
   filtrar();
   scrollTo(0, y);
   if (siguienteFoco) { const f = $(siguienteFoco); f?.focus(); f?.scrollIntoView?.({ block: 'center' }); siguienteFoco = null; }
   refrescar();
 }
 
-function ir(tab, foco = null) { pestana = tab; siguienteFoco = foco; pintar(true); }
+function ir(tab, foco = null) { pestana = tab; siguienteFoco = foco; cerrarMenu(); pintar(true); }
+
+/* En el móvil las pestañas son un panel lateral que se despliega con el botón ☰ */
+function abrirMenu() {
+  $('#tabs').classList.add('abierto'); $('#scrim').hidden = false;
+  $('#menuBtn').setAttribute('aria-expanded', 'true');
+  document.body.classList.add('menu-abierto');
+}
+function cerrarMenu() {
+  $('#tabs').classList.remove('abierto'); $('#scrim').hidden = true;
+  $('#menuBtn').setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('menu-abierto');
+}
 
 function filtrar() {
   const q = ($('#buscar')?.value || '').trim().toLowerCase();
@@ -717,7 +731,7 @@ async function entrar() {
     sincronizar();
     $('#login').hidden = true; $('#app').hidden = false;
     $('#demo').hidden = !demo;
-    $('#verWeb').href = location.pathname.replace(/admin\.html$/, '') || './';
+    $('#verWeb').href = $('#verWeb2').href = location.pathname.replace(/admin\.html$/, '') || './';
     pestana = 'inicio';
     pintar(true);
   } catch (err) {
@@ -743,15 +757,20 @@ function arrancar() {
     const b = e.target.closest('[data-tab]'); if (!b) return;
     ir(b.dataset.tab);
   });
+  $('#menuBtn').addEventListener('click', abrirMenu);
+  $('#menuCerrar').addEventListener('click', cerrarMenu);
+  $('#scrim').addEventListener('click', cerrarMenu);
+  addEventListener('keydown', e => { if (e.key === 'Escape') cerrarMenu(); });
+  matchMedia('(min-width: 761px)').addEventListener('change', cerrarMenu);
   $('#pub').addEventListener('click', publicar);
   $('#pub2').addEventListener('click', publicar);
   $('#undo').addEventListener('click', deshacer);
   $('#descartar').addEventListener('click', descartar);
-  $('#salir').addEventListener('click', () => {
+  $$('[data-salir]').forEach(b => b.addEventListener('click', () => {
     if (haySinPublicar() && !confirm('Hay cambios sin publicar. Si sales, se pierden. ¿Salir?')) return;
     try { localStorage.removeItem(CLAVE); } catch {}
-    base = JSON.stringify(D); token = ''; demo = false; mostrarLogin();
-  });
+    base = JSON.stringify(D); token = ''; demo = false; cerrarMenu(); mostrarLogin();
+  }));
   $('#loginForm').addEventListener('submit', e => {
     e.preventDefault();
     const v = $('#clave').value.trim();
