@@ -28,6 +28,41 @@ let siguienteFoco = null;
 let hist = [];                // fotos fijas del estado anterior, para «Deshacer»
 const fotos = new Map();      // ruta → { dataUrl, b64 }  (fotos nuevas aún sin publicar)
 
+
+/* ---------------------------------------------------------------- iconos
+   Dibujos de línea (misma familia que usa el resto de la web), sin emojis. */
+const IC = {
+  home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  utensils: '<path d="M7 3v8M4 3v5a3 3 0 0 0 6 0V3M7 11v10"/><path d="M17 21V3c-2 1-4 4-4 8h4"/>',
+  cart: '<circle cx="9" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/><path d="M3 4h2.4l2.3 11h10l2-8H6.2"/>',
+  star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+  pin: '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+  megaphone: '<path d="M4 10v4h3l8 4V6L7 10H4z"/><path d="M18 9a4 4 0 0 1 0 6"/>',
+  euro: '<path d="M17 6.5a6.5 6.5 0 1 0 0 11"/><path d="M4 10h9M4 14h9"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  minus: '<path d="M5 12h14"/>',
+  camera: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
+  receipt: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  chat: '<path d="M4 5h16v11H9l-5 4z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',
+  wrench: '<path d="M14.5 6.5a4 4 0 0 0 4.9 4.9l-9.4 9.4a2 2 0 0 1-3-3l9.4-9.4a4 4 0 0 1-1.9-1.9z"/>',
+  sparkles: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17v4M17 19h4"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l5 5"/>',
+  trash: '<path d="M4 7h16M10 3h4M6 7l1 14h10l1-14M10 11v6M14 11v6"/>',
+  undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  up: '<path d="M6 15l6-6 6 6"/>',
+  down: '<path d="M6 9l6 6 6-6"/>',
+  left: '<path d="M15 6l-6 6 6 6"/>',
+  right: '<path d="M9 6l6 6-6 6"/>',
+  percent: '<path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.2"/><circle cx="17" cy="17" r="2.2"/>',
+  check: '<path d="M5 12l5 5 9-10"/>',
+  external: '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5H5V6h5"/>'
+};
+const ic = n => `<svg class="ic ic--${n}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]}</svg>`;
+
 /* ---------------------------------------------------------------- avisos */
 function toast(msg, tipo = '', ms = 4200, accion = null) {
   const t = document.createElement('div');
@@ -177,28 +212,28 @@ const ayuda = txt => `<p class="guia">${txt}</p>`;
 
 function botonesFila(tipo, i, n, g = '') {
   return `<span class="btns">
-    <button class="ib" data-act="${tipo}Up" data-a="${i}" data-b="${g}" ${i === 0 ? 'disabled' : ''} title="Subir" aria-label="Subir">▲</button>
-    <button class="ib" data-act="${tipo}Down" data-a="${i}" data-b="${g}" ${i === n - 1 ? 'disabled' : ''} title="Bajar" aria-label="Bajar">▼</button>
-    <button class="ib ib--x" data-act="${tipo}Del" data-a="${i}" data-b="${g}" title="Quitar" aria-label="Quitar">✕</button></span>`;
+    <button class="ib" data-act="${tipo}Up" data-a="${i}" data-b="${g}" ${i === 0 ? 'disabled' : ''} title="Subir" aria-label="Subir">${ic('up')}</button>
+    <button class="ib" data-act="${tipo}Down" data-a="${i}" data-b="${g}" ${i === n - 1 ? 'disabled' : ''} title="Bajar" aria-label="Bajar">${ic('down')}</button>
+    <button class="ib ib--x" data-act="${tipo}Del" data-a="${i}" data-b="${g}" title="Quitar" aria-label="Quitar">${ic('x')}</button></span>`;
 }
 
 /* ---- INICIO: botones grandes con lo más habitual ---- */
 function vistaInicio() {
-  const t = (ic, titulo, sub, ir) => `<button class="tile" data-act="ir" data-ir="${ir}"><i>${ic}</i><b>${titulo}</b><small>${sub}</small></button>`;
+  const t = (icono, titulo, sub, ir) => `<button class="tile" data-act="ir" data-ir="${ir}"><i>${ic(icono)}</i><b>${titulo}</b><small>${sub}</small></button>`;
   return `
   <section class="bienvenida">
     <h1>¿Qué quieres hacer hoy?</h1>
     <p>Pulsa lo que necesites. Cuando termines, dale a <b>Publicar</b> y en un par de minutos está en la web.</p>
   </section>
   <div class="tiles">
-    ${t('📢', 'Poner un aviso', 'Cerrado por vacaciones, obras, festivo…', 'aviso')}
-    ${t('⏰', 'Cambiar el horario', 'Cuándo abrimos y cerramos', 'horario')}
-    ${t('💶', 'Cambiar un precio', 'Busca el plato y cámbialo', 'precio')}
-    ${t('➕', 'Añadir un plato', 'A la carta, con su precio', 'plato')}
-    ${t('🛒', 'Producto de la tienda', 'Precio, foto o «agotado»', 'tienda')}
-    ${t('📸', 'Poner una foto', 'A un producto de la tienda', 'foto')}
-    ${t('⭐', 'Reseñas', 'Añadir o quitar reseñas de Google', 'resenas')}
-    ${t('📍', 'Teléfono y dirección', 'WhatsApp, Instagram, promos', 'local')}
+    ${t('megaphone', 'Poner un aviso', 'Cerrado por vacaciones, obras, festivo…', 'aviso')}
+    ${t('clock', 'Cambiar el horario', 'Cuándo abrimos y cerramos', 'horario')}
+    ${t('euro', 'Cambiar un precio', 'Busca el plato y cámbialo', 'precio')}
+    ${t('plus', 'Añadir un plato', 'A la carta, con su precio', 'plato')}
+    ${t('cart', 'Producto de la tienda', 'Precio, foto o «agotado»', 'tienda')}
+    ${t('camera', 'Poner una foto', 'A un producto de la tienda', 'foto')}
+    ${t('star', 'Reseñas', 'Añadir o quitar reseñas de Google', 'resenas')}
+    ${t('pin', 'Teléfono y dirección', 'WhatsApp, Instagram, promos', 'local')}
   </div>
   <section class="pasos">
     <div><b>1</b><span>Cambia lo que necesites</span></div>
@@ -209,10 +244,10 @@ function vistaInicio() {
 
 /* ---- HORARIO Y AVISOS ---- */
 const AVISOS = [
-  ['🏖️', 'Cerrado por vacaciones', 'Cerrado por vacaciones del __ al __. ¡Volvemos pronto!'],
-  ['🔧', 'Cerrado por obras', 'Cerrado por obras. Disculpa las molestias.'],
-  ['🎉', 'Cerrado por festivo', 'Hoy cerramos por festivo. ¡Mañana abrimos como siempre!'],
-  ['🕒', 'Horario especial', 'Hoy abrimos en horario especial: de __ a __.']
+  ['sun', 'Cerrado por vacaciones', 'Cerrado por vacaciones del __ al __. ¡Volvemos pronto!'],
+  ['wrench', 'Cerrado por obras', 'Cerrado por obras. Disculpa las molestias.'],
+  ['sparkles', 'Cerrado por festivo', 'Hoy cerramos por festivo. ¡Mañana abrimos como siempre!'],
+  ['clock', 'Horario especial', 'Hoy abrimos en horario especial: de __ a __.']
 ];
 
 function filaHoras(nombre, clave) {
@@ -231,19 +266,19 @@ function vistaHorario() {
   const C = D.CONFIG;
   return `
   ${ayuda('Lo que escribas en el aviso sale en una <b>franja ámbar arriba de toda la web</b>. El horario hace que la portada ponga sola «Abierto ahora» o «Cerrado».')}
-  <section class="card"><h2>📢 Aviso en la web</h2>
+  <section class="card"><h2>${ic('megaphone')} Aviso en la web</h2>
     <div class="cuerpo">
       <p class="lbl">Elige uno y cámbialo a tu gusto:</p>
       <div class="chips">
-        ${AVISOS.map(([ic, n, t]) => `<button class="chip" data-act="avisoPlantilla" data-t="${esc(t)}">${ic} ${n}</button>`).join('')}
+        ${AVISOS.map(([i, n, t]) => `<button class="chip" data-act="avisoPlantilla" data-t="${esc(t)}">${ic(i)} ${n}</button>`).join('')}
       </div>
       <div class="campo"><label>Texto del aviso</label>
         <input type="text" id="aviso" data-p="CONFIG.aviso" value="${esc(C.aviso)}" placeholder="Ej.: Cerrado del 10 al 20 de agosto. ¡Volvemos pronto!"></div>
-      ${C.aviso ? '<button class="btn btn--ghost" data-act="avisoQuitar">✕ Quitar el aviso</button>' : '<p class="ayuda">Ahora mismo no hay ningún aviso en la web.</p>'}
+      ${C.aviso ? '<button class="btn btn--ghost" data-act="avisoQuitar">' + ic('x') + ' Quitar el aviso</button>' : '<p class="ayuda">Ahora mismo no hay ningún aviso en la web.</p>'}
     </div>
   </section>
 
-  <section class="card"><h2>⏰ Horario</h2>
+  <section class="card"><h2>${ic('clock')} Horario</h2>
     <div class="cuerpo">
       ${filaHoras('Lunes a sábado', 'semana')}
       ${filaHoras('Domingo', 'dom')}
@@ -257,7 +292,7 @@ function vistaLocal() {
   const C = D.CONFIG;
   return `
   ${ayuda('Estos datos salen en la portada, en «Dónde estamos» y en el pie de la web.')}
-  <section class="card"><h2>📞 Teléfono y WhatsApp</h2>
+  <section class="card"><h2>${ic('phone')} Teléfono y WhatsApp</h2>
     <div class="cuerpo"><div class="dos">
       ${campoTxt('Teléfono (el que se ve en la web)', 'CONFIG.telefono', 'inputmode="tel"')}
       ${campoTxt('WhatsApp donde llegan los pedidos', 'CONFIG.whatsapp', 'inputmode="numeric" placeholder="34600123456"')}
@@ -265,7 +300,7 @@ function vistaLocal() {
     <p class="ayuda">El WhatsApp, con el 34 delante y sin espacios. Si lo cambias, los pedidos de la tienda llegarán a ese número.</p></div>
   </section>
 
-  <section class="card"><h2>📍 Dirección y redes</h2>
+  <section class="card"><h2>${ic('pin')} Dirección y redes</h2>
     <div class="cuerpo"><div class="dos">
       ${campoTxt('Dirección', 'CONFIG.direccion')}
       ${campoTxt('Ciudad', 'CONFIG.ciudad')}
@@ -278,7 +313,7 @@ function vistaLocal() {
       </div></details></div>
   </section>
 
-  <section class="card"><h2>🧾 La pizarra de la portada</h2>
+  <section class="card"><h2>${ic('receipt')} La pizarra de la portada</h2>
     <p class="ayuda">Las promos de la pizarrita junto al vídeo de la portada.</p>
     <div class="cuerpo"><div class="lista">
       ${D.PROMOS.map((p, i) => `
@@ -288,7 +323,7 @@ function vistaLocal() {
           ${botonesFila('promo', i, D.PROMOS.length)}
         </div>`).join('') || '<p class="vacio">No hay promos todavía.</p>'}
     </div>
-    <button class="mas" data-act="promoAdd">＋ Añadir promo</button></div>
+    <button class="mas" data-act="promoAdd">${ic('plus')} Añadir promo</button></div>
   </section>`;
 }
 
@@ -297,7 +332,7 @@ function vistaCarta() {
   if (cartaTab >= D.CARTA.length) cartaTab = Math.max(0, D.CARTA.length - 1);
   const fam = D.CARTA[cartaTab];
   const chips = D.CARTA.map((c, i) => `<button class="chip${i === cartaTab ? ' on' : ''}" data-act="cartaSel" data-a="${i}">${esc(c.tab || 'Sin nombre')}</button>`).join('')
-    + '<button class="chip chip--nuevo" data-act="cartaAdd">＋ Nueva sección</button>';
+    + `<button class="chip chip--nuevo" data-act="cartaAdd">${ic('plus')} Nueva sección</button>`;
 
   if (!fam) return `<section class="card"><div class="chips">${chips}</div></section>`;
   return `
@@ -305,15 +340,15 @@ function vistaCarta() {
   <section class="card">
     <div class="chips">${chips}</div>
     <div class="cuerpo" style="margin-top:18px">
-      <input type="search" class="buscar" id="buscar" placeholder="🔍  Buscar un plato o bebida…" aria-label="Buscar en la carta">
+      <span class="buscar-w">${ic('search')}<input type="search" class="buscar" id="buscar" placeholder="Buscar un plato o bebida…" aria-label="Buscar en la carta"></span>
       <details class="ajustes"><summary class="enlace">Opciones de esta sección («${esc(fam.tab)}»)</summary>
         <div class="grupo__cab" style="margin:12px 0 0">
           <div class="campo"><label>Nombre de la sección</label>
             <input type="text" data-p="CARTA.${cartaTab}.tab" value="${esc(fam.tab)}"></div>
           <span class="btns">
-            <button class="ib" data-act="cartaUp" ${cartaTab === 0 ? 'disabled' : ''} title="Mover a la izquierda" aria-label="Mover a la izquierda">◀</button>
-            <button class="ib" data-act="cartaDown" ${cartaTab === D.CARTA.length - 1 ? 'disabled' : ''} title="Mover a la derecha" aria-label="Mover a la derecha">▶</button>
-            <button class="ib ib--x" data-act="cartaDel" title="Quitar la sección entera" aria-label="Quitar la sección entera">✕</button></span>
+            <button class="ib" data-act="cartaUp" ${cartaTab === 0 ? 'disabled' : ''} title="Mover a la izquierda" aria-label="Mover a la izquierda">${ic('left')}</button>
+            <button class="ib" data-act="cartaDown" ${cartaTab === D.CARTA.length - 1 ? 'disabled' : ''} title="Mover a la derecha" aria-label="Mover a la derecha">${ic('right')}</button>
+            <button class="ib ib--x" data-act="cartaDel" title="Quitar la sección entera" aria-label="Quitar la sección entera">${ic('x')}</button></span>
         </div></details>
     </div>
   </section>
@@ -324,10 +359,10 @@ function vistaCarta() {
       <div class="campo"><label>Familia</label>
         <input type="text" data-p="CARTA.${cartaTab}.grupos.${gi}.t" value="${esc(g.t)}" placeholder="Ej.: Café, Tartas, Cervezas"></div>
       <span class="btns">
-        <button class="ib" data-act="grpPct" data-a="${gi}" title="Subir o bajar todos los precios de esta familia" aria-label="Subir o bajar precios">％</button>
-        <button class="ib" data-act="grpUp" data-a="${gi}" ${gi === 0 ? 'disabled' : ''} title="Subir" aria-label="Subir">▲</button>
-        <button class="ib" data-act="grpDown" data-a="${gi}" ${gi === fam.grupos.length - 1 ? 'disabled' : ''} title="Bajar" aria-label="Bajar">▼</button>
-        <button class="ib ib--x" data-act="grpDel" data-a="${gi}" title="Quitar la familia" aria-label="Quitar la familia">✕</button></span>
+        <button class="ib" data-act="grpPct" data-a="${gi}" title="Subir o bajar todos los precios de esta familia" aria-label="Subir o bajar precios">${ic('percent')}</button>
+        <button class="ib" data-act="grpUp" data-a="${gi}" ${gi === 0 ? 'disabled' : ''} title="Subir" aria-label="Subir">${ic('up')}</button>
+        <button class="ib" data-act="grpDown" data-a="${gi}" ${gi === fam.grupos.length - 1 ? 'disabled' : ''} title="Bajar" aria-label="Bajar">${ic('down')}</button>
+        <button class="ib ib--x" data-act="grpDel" data-a="${gi}" title="Quitar la familia" aria-label="Quitar la familia">${ic('x')}</button></span>
     </div>
     <div class="lista">
       ${g.items.map((it, ii) => `
@@ -337,12 +372,12 @@ function vistaCarta() {
           ${botonesFila('item', ii, g.items.length, gi)}
         </div>`).join('') || '<p class="vacio">Sin platos todavía.</p>'}
     </div>
-    <div class="nota"><button class="mas" data-act="itemAdd" data-a="${gi}">＋ Añadir a ${esc(g.t || 'esta familia')}</button></div>
+    <div class="nota"><button class="mas" data-act="itemAdd" data-a="${gi}">${ic('plus')} Añadir a ${esc(g.t || 'esta familia')}</button></div>
     <div class="campo" style="margin-top:16px"><label>Nota al pie (opcional)</label>
       <input type="text" data-p="CARTA.${cartaTab}.grupos.${gi}.nota" value="${esc(g.nota || '')}" placeholder="Ej.: Tenemos leche de avena y sin lactosa."></div>
   </section>`).join('')}
 
-  <button class="mas" data-act="grpAdd">＋ Añadir una familia nueva a «${esc(fam.tab)}»</button>`;
+  <button class="mas" data-act="grpAdd">${ic('plus')} Añadir una familia nueva a «${esc(fam.tab)}»</button>`;
 }
 
 /* ---- TIENDA ---- */
@@ -355,7 +390,7 @@ function vistaTienda() {
   const lista = D.PRODUCTOS.map((p, n) => ({ p, n })).filter(({ p }) => tiendaSec === 'todos' || p.s === tiendaSec);
 
   return `
-  ${ayuda('Toca la <b>foto</b> para cambiarla. Con <b>− / +</b> subes o bajas el precio de 10 en 10 céntimos. Si el interruptor «Disponible» está apagado, el producto desaparece de la tienda sin borrarse.')}
+  ${ayuda('Toca la <b>foto</b> para cambiarla. Con los botones de <b>menos y más</b> subes o bajas el precio de 10 en 10 céntimos. Si el interruptor «Disponible» está apagado, el producto desaparece de la tienda sin borrarse.')}
   <section class="card">
     <div class="chips">${chips}</div>
   </section>
@@ -365,8 +400,8 @@ function vistaTienda() {
       return `
       <article class="prod${p.off ? ' oculto' : ''}">
         <label class="foto${src ? '' : ' foto--sin'}" title="Cambiar la foto">
-          ${src ? `<img src="${esc(src)}" alt="">` : '<b>📷</b>'}
-          <span>${src ? '📷 Cambiar' : 'Añadir foto'}</span>
+          ${src ? `<img src="${esc(src)}" alt="">` : '<b>' + ic('camera') + '</b>'}
+          <span>${src ? ic('camera') + ' Cambiar' : 'Añadir foto'}</span>
           <input type="file" accept="image/*" data-foto="${n}">
         </label>
         <div class="prod__f">
@@ -375,10 +410,10 @@ function vistaTienda() {
         </div>
         <div class="prod__pie">
           <div class="precio">
-            <button class="ib" data-act="precioMenos" data-a="${n}" aria-label="Bajar 10 céntimos">−</button>
+            <button class="ib" data-act="precioMenos" data-a="${n}" aria-label="Bajar 10 céntimos">${ic('minus')}</button>
             <input type="text" inputmode="decimal" data-p="PRODUCTOS.${n}.p" data-k="num" value="${p.p == null ? '' : coma(p.p)}" placeholder="—" aria-label="Precio en euros">
             <span>€</span>
-            <button class="ib" data-act="precioMas" data-a="${n}" aria-label="Subir 10 céntimos">＋</button>
+            <button class="ib" data-act="precioMas" data-a="${n}" aria-label="Subir 10 céntimos">${ic('plus')}</button>
           </div>
           ${p.p == null ? '<span class="sello sello--aviso">Precio en breve</span>' : ''}
         </div>
@@ -388,24 +423,24 @@ function vistaTienda() {
         </div>
         <div class="prod__cola">
           <select data-p="PRODUCTOS.${n}.s" aria-label="Sección">${secs.map(s => `<option value="${s.id}" ${s.id === p.s ? 'selected' : ''}>${esc(s.t)}</option>`).join('')}</select>
-          <button class="borrar" data-act="prodDel" data-a="${n}">🗑 Borrar</button>
+          <button class="borrar" data-act="prodDel" data-a="${n}">${ic('trash')} Borrar</button>
         </div>
       </article>`; }).join('') || '<p class="vacio" style="grid-column:1/-1">No hay productos en esta sección.</p>'}
   </div>
-  <button class="mas" data-act="prodAdd">＋ Añadir un producto${tiendaSec === 'todos' ? '' : ' a ' + esc(secs.find(s => s.id === tiendaSec)?.t || '')}</button>`;
+  <button class="mas" data-act="prodAdd">${ic('plus')} Añadir un producto${tiendaSec === 'todos' ? '' : ' a ' + esc(secs.find(s => s.id === tiendaSec)?.t || '')}</button>`;
 }
 
 /* ---- RESEÑAS ---- */
 function estrellas(i, n) {
   return `<span class="est" role="group" aria-label="Estrellas">${[1, 2, 3, 4, 5].map(k =>
-    `<button class="${k <= n ? 'on' : ''}" data-act="estrella" data-a="${i}" data-b="${k}" aria-label="${k} estrellas">★</button>`).join('')}</span>`;
+    `<button class="${k <= n ? 'on' : ''}" data-act="estrella" data-a="${i}" data-b="${k}" aria-label="${k} estrellas">${ic('star')}</button>`).join('')}</span>`;
 }
 
 function vistaResenas() {
   const C = D.CONFIG;
   return `
   ${ayuda('Copia las reseñas <b>tal cual</b> desde Google. No inventes ninguna.')}
-  <section class="card"><h2>⭐ La nota de Google</h2>
+  <section class="card"><h2>${ic('star')} La nota de Google</h2>
     <div class="cuerpo"><div class="dos">
       <div class="campo"><label>Nota (de 1 a 5)</label><input type="text" inputmode="decimal" data-p="CONFIG.rating" data-k="num" value="${String(C.rating).replace('.', ',')}"></div>
       <div class="campo"><label>Número de reseñas</label><input type="text" inputmode="numeric" data-p="CONFIG.resenas" data-k="num" value="${C.resenas}"></div>
@@ -414,7 +449,7 @@ function vistaResenas() {
       <input type="text" data-destacados value="${esc(D.DESTACADOS.join(', '))}" placeholder="Medialunas, Empanadas, El café"></div></div>
   </section>
 
-  <section class="card"><h2>💬 Reseñas que se muestran</h2>
+  <section class="card"><h2>${ic('chat')} Reseñas que se muestran</h2>
     <div class="cuerpo">
       ${D.RESENAS.map((r, i) => `
       <div class="res">
@@ -425,7 +460,7 @@ function vistaResenas() {
         </div>
         <div class="campo"><label>Lo que dice</label><textarea data-p="RESENAS.${i}.t">${esc(r.t)}</textarea></div>
       </div>`).join('') || '<p class="vacio">No hay reseñas.</p>'}
-      <button class="mas" data-act="resAdd">＋ Añadir una reseña</button>
+      <button class="mas" data-act="resAdd">${ic('plus')} Añadir una reseña</button>
     </div>
   </section>`;
 }
@@ -627,7 +662,7 @@ async function subirFoto(n, file) {
     guardarHist();
     p.i = ruta;
     pintar();
-    toast('📸 Foto lista. Se subirá al pulsar «Publicar».', 'ok');
+    toast('Foto lista. Se subirá al pulsar «Publicar».', 'ok');
   } catch (err) { toast(err.message, 'mal'); }
 }
 
@@ -653,8 +688,8 @@ async function publicar() {
     await subir(texto);
     base = JSON.stringify(D); hist = [];
     pintar();
-    const e = $('#estado'); e.className = 'estado ok'; $('span', e).textContent = 'Publicado ✓';
-    toast('🎉 ¡Publicado! En 1 o 2 minutos se verá en la web.', 'ok', 8000);
+    const e = $('#estado'); e.className = 'estado ok'; $('span', e).textContent = 'Publicado';
+    toast('¡Publicado! En 1 o 2 minutos se verá en la web.', 'ok', 8000);
   } catch (err) {
     const msg = err.status === 401 || err.status === 403 ? 'La clave ya no vale o no tiene permiso. Pide una nueva.'
       : err.status === 409 || err.status === 422 ? 'Alguien ha publicado mientras editabas. Recarga la página y vuelve a hacer el cambio.'
@@ -698,6 +733,7 @@ function arrancar() {
   if (m) { try { localStorage.setItem(CLAVE, decodeURIComponent(m[1])); } catch {} history.replaceState(null, '', location.pathname); }
   try { token = localStorage.getItem(CLAVE) || ''; } catch { token = ''; }
 
+  $$('[data-ic]').forEach(e => { e.innerHTML = ic(e.dataset.ic); });
   const vista = $('#vista');
   vista.addEventListener('input', alEscribir);
   vista.addEventListener('change', alCambiar);

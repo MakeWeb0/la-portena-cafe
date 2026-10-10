@@ -262,3 +262,34 @@ body.con-barra .pie { padding-bottom: 110px; }
 .prod__pie { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .prod .foto { height: 120px; }
 .prod__f { align-content: center; }
+
+/* ------------------------------------------------------------------ iconos */
+.ic { width: 1.2em; height: 1.2em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vertical-align: -.22em; }
+.tabs button i, .btn i, .top__act i { display: inline-flex; font-style: normal; vertical-align: middle; }
+.tabs button .ic { margin-right: 6px; }
+.btn .ic { margin: 0; }
+.card > h2 { display: flex; align-items: center; gap: 10px; }
+.card > h2 .ic { color: var(--amber); width: 1.3em; height: 1.3em; }
+.tile i { width: 54px; height: 54px; margin-bottom: 12px; border-radius: 14px; display: grid; place-items: center; background: rgba(245,176,76,.12); color: var(--amber); font-size: 1rem; }
+.tile i .ic { width: 28px; height: 28px; stroke-width: 1.6; }
+.tile:hover i { background: var(--amber); color: #1b1209; }
+.chip { display: inline-flex; align-items: center; gap: 8px; }
+.chip .ic { width: 1.15em; height: 1.15em; }
+.ib .ic { width: 18px; height: 18px; vertical-align: middle; }
+.ib { color: var(--chalk-2); }
+.precio .ib .ic { width: 20px; height: 20px; }
+.mas { display: inline-flex; align-items: center; gap: 8px; }
+.mas .ic { width: 1.1em; height: 1.1em; }
+.borrar { display: inline-flex; align-items: center; gap: 6px; }
+.borrar .ic { width: 1.05em; height: 1.05em; }
+.foto b { display: grid; place-items: center; color: var(--amber); }
+.foto b .ic { width: 30px; height: 30px; stroke-width: 1.5; }
+.foto span { display: flex; align-items: center; justify-content: center; gap: 5px; }
+.foto span .ic { width: 1.1em; height: 1.1em; }
+.est button { display: grid; place-items: center; }
+.est button .ic { width: 26px; height: 26px; fill: transparent; stroke: currentColor; }
+.est button.on .ic { fill: currentColor; }
+.buscar-w { position: relative; display: block; max-width: 360px; }
+.buscar-w .ic { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; color: var(--chalk-3); pointer-events: none; }
+.buscar-w .buscar { padding-left: 44px; max-width: none; }
+@media (max-width: 700px) { .tile i { width: 46px; height: 46px; } .tile i .ic { width: 24px; height: 24px; } }
