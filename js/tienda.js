@@ -29,7 +29,7 @@ function pintarTienda() {
     .map((s, i) => `<button data-go="${s.id}"${i ? '' : ' class="on"'}>${s.t}</button>`).join('');
 
   $('#shopBody').innerHTML = SECCIONES.map(sec => {
-    const items = PRODUCTOS.filter(p => p.s === sec.id);
+    const items = PRODUCTOS.filter(p => p.s === sec.id && !p.off);
     if (!items.length) return '';
     const soloRecogida = items.every(p => p.pickupOnly);
     return `

@@ -213,20 +213,43 @@ function fillContact() {
   set('[data-yr]',   e => e.textContent = new Date().getFullYear());
 }
 
-/* «Abierto ahora» según la hora de Alicante */
+/* «Abierto ahora» según la hora de Alicante. Los horarios salen de CONFIG.abre
+   (los cambia el panel de administración): { semana: ['08:00','22:00'], dom: [...] | null } */
 function estado() {
   const el = $('#status');
   if (!el) return;
   const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false })
     .formatToParts(new Date()).map(x => [x.type, x.value]));
-  const dom = p.weekday === 'Sun', hh = (+p.hour % 24) + (+p.minute) / 60;
-  const [a, c] = dom ? CONFIG.abre.dom : CONFIG.abre.semana;
-  const f = n => String(n).padStart(2, '0') + ':00';
-  const abierto = hh >= a && hh < c;
+  const DIAS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const NOMBRES = ['el domingo', 'el lunes', 'el martes', 'el miércoles', 'el jueves', 'el viernes', 'el sábado'];
+  const hoy = DIAS.indexOf(p.weekday);
+  const hh = (+p.hour % 24) + (+p.minute) / 60;
+  const num = s => { const [h, m] = s.split(':').map(Number); return h + (m || 0) / 60; };
+  const rango = d => { const r = d === 0 ? CONFIG.abre.dom : CONFIG.abre.semana; return r ? { a: num(r[0]), c: num(r[1]), ta: r[0], tc: r[1] } : null; };
+  const r = rango(hoy);
+  const abierto = r && hh >= r.a && hh < r.c;
+  let txt;
+  if (abierto) txt = `Abierto ahora · hasta las ${r.tc}`;
+  else if (r && hh < r.a) txt = `Abrimos hoy a las ${r.ta}`;
+  else {
+    let k = 1, s = null;
+    while (k <= 7 && !(s = rango((hoy + k) % 7))) k++;
+    txt = s ? `Cerrado · abrimos ${k === 1 ? 'mañana' : NOMBRES[(hoy + k) % 7]} a las ${s.ta}` : 'Cerrado';
+  }
   el.className = 'status ' + (abierto ? 'open' : 'closed');
-  $('span', el).textContent = abierto
-    ? `Abierto ahora · hasta las ${f(c)}`
-    : (hh < a ? `Abrimos hoy a las ${f(a)}` : `Cerrado · abrimos ${p.weekday === 'Sat' ? 'el domingo' : 'mañana'} a las ${f(p.weekday === 'Sat' ? CONFIG.abre.dom[0] : CONFIG.abre.semana[0])}`);
+  $('span', el).textContent = txt;
+}
+
+/* Aviso arriba del todo («Cerrado por vacaciones…»): lo escribe el dueño en el panel */
+function aviso() {
+  const t = (CONFIG.aviso || '').trim();
+  if (!t || $('.aviso')) return;
+  const d = document.createElement('div');
+  d.className = 'aviso';
+  d.setAttribute('role', 'status');
+  d.textContent = t;
+  document.body.prepend(d);
+  document.documentElement.classList.add('has-aviso');
 }
 
 /* ================================================================== navbar */
@@ -324,6 +347,7 @@ const waLink = txt => `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponen
 function boot() {
   wallpaper();
   fillContact();
+  aviso();
   estado();
   nav();
   chalks();

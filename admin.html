@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Panel de control · La Porteña</title>
+<meta name="theme-color" content="#121211">
+<link rel="icon" href="assets/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Jost:wght@300;400;500;600&family=Yellowtail&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<!-- ============================================================ ENTRAR -->
+<section class="login" id="login" hidden>
+  <div class="login__card">
+    <p class="marca">La Porteña</p>
+    <h1>Panel de control</h1>
+    <p class="login__txt">Desde aquí puedes cambiar la carta, el horario, las promos, los productos de la tienda y las reseñas, sin tocar nada técnico.</p>
+
+    <form id="loginForm" autocomplete="off">
+      <label for="clave">Tu clave de acceso</label>
+      <input id="clave" type="password" placeholder="Pega aquí la clave que te dieron" spellcheck="false" autocomplete="off">
+      <p class="login__err" id="loginErr" role="alert" hidden></p>
+      <button class="btn btn--solid" type="submit">Entrar</button>
+    </form>
+    <p class="login__pie">¿No tienes clave? Pídesela a quien te hizo la web.<br>
+      <button class="enlace" id="demoBtn" type="button">Probar sin publicar</button></p>
+  </div>
+</section>
+
+<!-- ================================================================ PANEL -->
+<div class="app" id="app" hidden>
+  <header class="top">
+    <div class="top__brand"><b>La Porteña</b><span>Panel de control</span></div>
+    <div class="top__act">
+      <span class="estado" id="estado" aria-live="polite"><i></i><span>Sin cambios</span></span>
+      <a class="enlace" id="verWeb" href="./" target="_blank" rel="noopener">Ver la web ↗</a>
+      <button class="btn btn--solid" id="pub" type="button" disabled>Publicar cambios</button>
+    </div>
+  </header>
+
+  <p class="demo" id="demo" hidden><b>Modo prueba.</b> Puedes cambiar cosas para ver cómo funciona, pero no se publica nada: el botón descarga el archivo en lugar de subirlo.</p>
+
+  <nav class="tabs" id="tabs" aria-label="Qué quieres cambiar">
+    <button data-tab="inicio" class="on">Inicio y horario</button>
+    <button data-tab="carta">La carta</button>
+    <button data-tab="tienda">Tienda</button>
+    <button data-tab="resenas">Reseñas</button>
+  </nav>
+
+  <main class="vista" id="vista"></main>
+
+  <footer class="pie">
+    <p>Los cambios se ven en la web 1 o 2 minutos después de pulsar <b>Publicar cambios</b>.</p>
+    <button class="enlace" id="salir" type="button">Cerrar sesión</button>
+  </footer>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="js/serializar.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

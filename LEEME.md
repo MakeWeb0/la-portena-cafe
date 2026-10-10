@@ -13,6 +13,11 @@ python servidor.py
 
 Y abre http://127.0.0.1:8000
 
+## Panel de control (para el dueño)
+
+`admin.html` permite cambiar horario, avisos, promos, carta, tienda (precios y fotos) y reseñas
+sin saber programar. Guía y puesta en marcha: **[ADMIN.md](ADMIN.md)**.
+
 ## Qué hay dentro
 
 ```
