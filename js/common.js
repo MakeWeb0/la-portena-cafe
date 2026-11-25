@@ -80,12 +80,28 @@ function animarFoliage() {
 /* El papel pintado: dos hojas cruzadas repetidas en una baldosa que se
    pone de fondo (--wall). Verde muy oscuro sobre negro, apenas se nota.    */
 function wallpaper() {
-  const W = 480;
-  const leaf = (x, y, r, k) => [-W, 0, W].flatMap(dx => [-W, 0, W].map(dy =>
-    `<g transform="translate(${x + dx} ${y + dy}) rotate(${r}) scale(${k}) translate(-75 -260)">${frond({ n: 11 })}</g>`)).join('');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${W}" viewBox="0 0 ${W} ${W}"><g fill="#2c5237" fill-opacity=".3" stroke="#2c5237" stroke-opacity=".3">
-    ${leaf(130, 280, -28, 1.05)}${leaf(350, 460, 36, 1.15)}${leaf(400, 120, 160, .85)}${leaf(40, 60, 200, .8)}</g></svg>`;
+  const W = 480, K = .7, L = 260 * K;
+  /* cada hoja se centra en su sitio (cx, cy); se dibuja también en las baldosas
+     vecinas para que las que tocan el borde empalmen sin cortes */
+  const leaf = (cx, cy, r) => {
+    const a = r * Math.PI / 180, bx = cx - L / 2 * Math.sin(a), by = cy + L / 2 * Math.cos(a);
+    return [-W, 0, W].flatMap(dx => [-W, 0, W].map(dy =>
+      `<g transform="translate(${bx + dx} ${by + dy}) rotate(${r}) scale(${K}) translate(-75 -260)">${frond({ n: 11 })}</g>`)).join('');
+  };
+  /* opacidad en el grupo: donde se cruzan foliolos no se oscurece más */
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${W}" viewBox="0 0 ${W} ${W}"><g opacity=".3" fill="#2c5237" stroke="#2c5237">
+    ${leaf(115, 125, -30)}${leaf(355, 105, 26)}${leaf(235, 360, -12)}${leaf(470, 345, 150)}</g></svg>`;
   document.documentElement.style.setProperty('--wall', `url("data:image/svg+xml,${encodeURIComponent(svg)}")`);
+
+  /* el dibujo sigue la página entera: cada sección lo desplaza según su altura,
+     así no se nota el corte de una sección a la siguiente */
+  const alinear = () => $$('.wall').forEach(el => {
+    const y = el.getBoundingClientRect().top + scrollY;
+    el.style.setProperty('--wy', -Math.round(y) + 'px');
+  });
+  alinear();
+  addEventListener('load', alinear);
+  if ('ResizeObserver' in window) new ResizeObserver(alinear).observe(document.body);
 }
 
 /* ============================================================ luz y papel */
@@ -112,10 +128,11 @@ function fairy(host) {
 
 /* Separador a tiza: se traza al llegar y brilla una estrella en medio */
 function chalkMarkup() {
+  /* separador limpio: dos trazos rectos y una estrellita en medio */
   return `<svg viewBox="0 0 240 18" aria-hidden="true">
-    <path class="l l1" d="M2 10 C 26 4, 50 15, 84 9 S 100 9, 100 9"/>
-    <path class="st" d="M120 1 L122.8 7 L129 9 L122.8 11 L120 17 L117.2 11 L111 9 L117.2 7Z"/>
-    <path class="l l2" d="M140 9 S 140 9, 156 9 C 190 15, 214 4, 238 10"/></svg>`;
+    <path class="l l1" d="M2 9 H 104"/>
+    <path class="st" d="M120 2 L122.2 6.8 L127 9 L122.2 11.2 L120 16 L117.8 11.2 L113 9 L117.8 6.8Z"/>
+    <path class="l l2" d="M238 9 H 136"/></svg>`;
 }
 function chalks() {
   $$('.chalk').forEach(el => {
@@ -143,14 +160,15 @@ function words() {
     h.innerHTML = [...h.childNodes].map(n => n.nodeType === 3
       ? n.textContent.split(/(\s+)/).map(t => /^\s+$/.test(t) ? ' ' : t ? `<span class="w"><span>${t}</span></span>` : '').join('')
       : n.outerHTML).join('');
-    if (!GS || REDUCED) return;
+    if (!GS || REDUCED) { h.classList.add('is-in'); return; }
     const inner = $$('.w > span', h);
     gsap.set(inner, { yPercent: 115 });
-    onView(h, () => gsap.to(inner, { yPercent: 0, duration: 1.05, ease: 'power4.out', stagger: .08 }));
+    /* al terminar de subir se abre la ranura para que el brillo no quede recortado */
+    onView(h, () => gsap.to(inner, { yPercent: 0, duration: 1.05, ease: 'power4.out', stagger: .08,
+      onComplete: () => h.classList.add('is-in') }));
   });
 }
 
-function eyebrows() { $$('.eyebrow').forEach(e => onView(e, () => e.classList.add('in'))); }
 
 function reveals() {
   if (!GS || REDUCED) return;
@@ -352,7 +370,6 @@ function boot() {
   nav();
   chalks();
   words();
-  eyebrows();
   reveals();
   mediaReveal();
   animarFoliage();

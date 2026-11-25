@@ -23,7 +23,8 @@ let token = '';               // clave de acceso (token de GitHub)
 let demo = false;             // modo prueba: no publica, descarga
 let pestana = 'inicio';
 let cartaTab = 0;             // sección de carta abierta
-let tiendaSec = 'todos';      // sección de tienda filtrada
+let tiendaSec = 'todos';      // sección de tienda filtrada ('todos', 'sinprecio' o el id de una sección)
+let buscaProd = '';           // lo escrito en el buscador de la tienda
 let siguienteFoco = null;
 let hist = [];                // fotos fijas del estado anterior, para «Deshacer»
 const fotos = new Map();      // ruta → { dataUrl, b64 }  (fotos nuevas aún sin publicar)
@@ -387,20 +388,44 @@ const fotoSrc = p => (p.i && fotos.get(p.i)?.dataUrl) || p.i || '';
 
 function vistaTienda() {
   const secs = D.SECCIONES;
-  const chips = ['<button class="chip' + (tiendaSec === 'todos' ? ' on' : '') + '" data-act="secSel" data-s="todos">Todo</button>']
-    .concat(secs.map(s => `<button class="chip${tiendaSec === s.id ? ' on' : ''}" data-act="secSel" data-s="${s.id}">${esc(s.t)}</button>`)).join('');
-  const lista = D.PRODUCTOS.map((p, n) => ({ p, n })).filter(({ p }) => tiendaSec === 'todos' || p.s === tiendaSec);
+  if (tiendaSec !== 'todos' && tiendaSec !== 'sinprecio' && !secs.some(x => x.id === tiendaSec)) tiendaSec = 'todos';
+  const cuantos = id => D.PRODUCTOS.filter(p => p.s === id).length;
+  const sinPrecio = D.PRODUCTOS.filter(p => p.p == null).length;
+  const chip = (id, txt, n, extra = '') => `<button class="chip${tiendaSec === id ? ' on' : ''}${extra}" data-act="secSel" data-s="${id}">${txt} <span class="chip__n">${n}</span></button>`;
+  const chips = [chip('todos', 'Todo', D.PRODUCTOS.length)]
+    .concat(secs.map(x => chip(x.id, esc(x.t), cuantos(x.id))))
+    .concat(sinPrecio ? [chip('sinprecio', 'Sin precio', sinPrecio, ' chip--aviso')] : [])
+    .concat([`<button class="chip chip--nuevo" data-act="secAdd">${ic('plus')} Nueva sección</button>`]).join('');
+  const lista = D.PRODUCTOS.map((p, n) => ({ p, n })).filter(({ p }) =>
+    tiendaSec === 'todos' || (tiendaSec === 'sinprecio' ? p.p == null : p.s === tiendaSec));
+  const si = secs.findIndex(x => x.id === tiendaSec), sec = secs[si];
 
   return `
-  ${ayuda('Toca la <b>foto</b> para cambiarla. Con los botones de <b>menos y más</b> subes o bajas el precio de 10 en 10 céntimos. Si el interruptor «Disponible» está apagado, el producto desaparece de la tienda sin borrarse.')}
+  ${ayuda('Toca la <b>foto</b> para cambiarla. Con los botones de <b>menos y más</b> subes o bajas el precio de 10 en 10 céntimos. Si el interruptor «Disponible» está apagado, el producto desaparece de la tienda sin borrarse. «Sin precio» enseña los que salen como «Precio en breve».')}
   <section class="card">
     <div class="chips">${chips}</div>
+    <div class="cuerpo" style="margin-top:18px">
+      <span class="buscar-w">${ic('search')}<input type="search" class="buscar" id="buscarProd" value="${esc(buscaProd)}" placeholder="Buscar un producto (Havanna, termo, 500 g…)" aria-label="Buscar en la tienda"></span>
+      ${sec ? `
+      <details class="ajustes"><summary class="enlace">Opciones de esta sección («${esc(sec.t)}»)</summary>
+        <div class="grupo__cab" style="margin:12px 0 0">
+          <div class="campo"><label>Nombre de la sección</label>
+            <input type="text" data-p="SECCIONES.${si}.t" value="${esc(sec.t)}"></div>
+          <span class="btns">
+            <button class="ib" data-act="secUp" data-a="${si}" ${si === 0 ? 'disabled' : ''} title="Mover a la izquierda" aria-label="Mover a la izquierda">${ic('left')}</button>
+            <button class="ib" data-act="secDown" data-a="${si}" ${si === secs.length - 1 ? 'disabled' : ''} title="Mover a la derecha" aria-label="Mover a la derecha">${ic('right')}</button>
+            <button class="ib ib--x" data-act="secDel" data-a="${si}" ${cuantos(sec.id) ? 'disabled title="Solo se puede quitar una sección vacía: mueve o borra antes sus productos"' : 'title="Quitar la sección"'} aria-label="Quitar la sección">${ic('x')}</button></span>
+        </div>
+        <div class="campo" style="margin-top:12px"><label>Frase debajo del título en la tienda</label>
+          <input type="text" data-p="SECCIONES.${si}.d" value="${esc(sec.d || '')}" placeholder="Una frase corta sobre la sección"></div>
+      </details>` : ''}
+    </div>
   </section>
   <div class="prods">
     ${lista.map(({ p, n }) => {
       const src = fotoSrc(p);
       return `
-      <article class="prod${p.off ? ' oculto' : ''}">
+      <article class="prod${p.off ? ' oculto' : ''}" data-q="${esc((p.n + ' ' + (p.v || '')).toLowerCase())}">
         <label class="foto${src ? '' : ' foto--sin'}" title="Cambiar la foto">
           ${src ? `<img src="${esc(src)}" alt="">` : '<b>' + ic('camera') + '</b>'}
           <span>${src ? ic('camera') + ' Cambiar' : 'Añadir foto'}</span>
@@ -428,8 +453,9 @@ function vistaTienda() {
           <button class="borrar" data-act="prodDel" data-a="${n}">${ic('trash')} Borrar</button>
         </div>
       </article>`; }).join('') || '<p class="vacio" style="grid-column:1/-1">No hay productos en esta sección.</p>'}
+    <p class="vacio" id="sinResultados" style="grid-column:1/-1" hidden>Ningún producto coincide con la búsqueda.</p>
   </div>
-  <button class="mas" data-act="prodAdd">${ic('plus')} Añadir un producto${tiendaSec === 'todos' ? '' : ' a ' + esc(secs.find(s => s.id === tiendaSec)?.t || '')}</button>`;
+  <button class="mas" data-act="prodAdd">${ic('plus')} Añadir un producto${sec ? ' a ' + esc(sec.t) : ''}</button>`;
 }
 
 /* ---- RESEÑAS ---- */
@@ -503,6 +529,10 @@ function cerrarMenu() {
 }
 
 function filtrar() {
+  const qp = buscaProd.trim().toLowerCase();
+  const prods = $$('.prod[data-q]');
+  prods.forEach(f => { f.hidden = !!qp && !f.dataset.q.includes(qp); });
+  const nada = $('#sinResultados'); if (nada) nada.hidden = !qp || prods.some(f => !f.hidden);
   const q = ($('#buscar')?.value || '').trim().toLowerCase();
   $$('[data-fila]').forEach(f => { f.hidden = !!q && !$('input', f).value.toLowerCase().includes(q); });
   $$('.grupo').forEach(g => { g.hidden = !!q && $$('[data-fila]:not([hidden])', g).length === 0; });
@@ -621,6 +651,8 @@ const REGLAS = [
   [/^CARTA\.\d+\.grupos\.\d+\.t$/, { fn: TXT(40), max: 40 }],
   [/^CARTA\.\d+\.grupos\.\d+\.items\.\d+\.0$/, { fn: TXT(160), max: 160 }],
   [/^CARTA\.\d+\.grupos\.\d+\.nota$/, { fn: TXT(120), max: 120 }],
+  [/^SECCIONES\.\d+\.t$/, { fn: TXT(30, true), max: 30 }],
+  [/^SECCIONES\.\d+\.d$/, { fn: TXT(140), max: 140 }],
   [/^PRODUCTOS\.\d+\.n$/, { fn: TXT(80), max: 80 }],
   [/^PRODUCTOS\.\d+\.v$/, { fn: TXT(120), max: 120 }],
   [/^PRODUCTOS\.\d+\.p$/, { fn: vPrecioNum, live: /[^\d.,]/g, max: 6 }],
@@ -665,6 +697,7 @@ function aplicar(el, ruta, regla) {
 function alEscribir(e) {
   const el = e.target;
   if (el.id === 'buscar') { filtrar(); return; }
+  if (el.id === 'buscarProd') { buscaProd = el.value; filtrar(); return; }
   if (el.dataset.destacados !== undefined) {
     el.value = el.value.replace(/[<>]/g, '');
     const r = vDestacados(el.value);
@@ -748,6 +781,7 @@ function validarTodo() {
       });
     });
   });
+  D.SECCIONES.forEach((x, i) => { probar(`SECCIONES.${i}.t`, x.t, 'tienda'); if (x.d) probar(`SECCIONES.${i}.d`, x.d, 'tienda'); });
   D.PRODUCTOS.forEach((p, n) => {
     if (!p.n.trim()) return;
     probar(`PRODUCTOS.${n}.n`, p.n, 'tienda');
@@ -770,7 +804,7 @@ function irAlError() {
   const ruta = [...errores.keys()][0];
   pestana = tabDeRuta(ruta);
   const m = ruta.match(/^CARTA\.(\d+)\./); if (m) cartaTab = +m[1];
-  if (pestana === 'tienda') tiendaSec = 'todos';
+  if (pestana === 'tienda') { const s = ruta.match(/^SECCIONES\.(\d+)\./); tiendaSec = s ? D.SECCIONES[+s[1]].id : 'todos'; buscaProd = ''; }
   siguienteFoco = ruta === 'DESTACADOS' ? '[data-destacados]' : `[data-p="${ruta}"]`;
   cerrarMenu(); pintar(true);
 }
@@ -845,9 +879,22 @@ function alPulsar(e) {
 
     /* tienda */
     case 'secSel': tiendaSec = b.dataset.s; break;
+    case 'secAdd': {
+      const id = 's' + Date.now().toString(36);
+      D.SECCIONES.push({ id, t: 'Nueva sección', d: '' });
+      tiendaSec = id; buscaProd = '';
+      siguienteFoco = `[data-p="SECCIONES.${D.SECCIONES.length - 1}.t"]`;
+      requestAnimationFrame(() => { const d = $('details.ajustes'); if (d) d.open = true; $(`[data-p="SECCIONES.${D.SECCIONES.length - 1}.t"]`)?.select(); });
+      break;
+    }
+    case 'secUp': mover(D.SECCIONES, a, -1); break;
+    case 'secDown': mover(D.SECCIONES, a, 1); break;
+    case 'secDel': {
+      if (D.PRODUCTOS.some(p => p.s === D.SECCIONES[a].id)) return;
+      nombreQuitado = `La sección «${D.SECCIONES[a].t}»`; D.SECCIONES.splice(a, 1); tiendaSec = 'todos'; break;
+    }
     case 'prodAdd': {
-      
-      const s = tiendaSec === 'todos' ? D.SECCIONES[0].id : tiendaSec;
+      const s = D.SECCIONES.some(x => x.id === tiendaSec) ? tiendaSec : D.SECCIONES[0].id;
       const soloRec = ['alfajores', 'galletitas', 'almacen'].includes(s);
       D.PRODUCTOS.push({ id: 'n' + Date.now().toString(36), s, n: 'Nuevo producto', v: '', p: null, ...(soloRec ? { pickupOnly: true } : {}), g: 'caja' });
       siguienteFoco = `[data-p="PRODUCTOS.${D.PRODUCTOS.length - 1}.n"]`; break;
@@ -873,7 +920,7 @@ function alPulsar(e) {
 }
 
 /* Antes de cada acción que cambia la estructura, se guarda una foto para «Deshacer» */
-const ACCIONES_CON_HIST = /^(promo(Add|Up|Down|Del)|carta(Add|Del|Up|Down)|grp(Add|Up|Down|Del)|item(Add|Up|Down|Del)|prod(Add|Del)|res(Add|Up|Down|Del)|avisoQuitar|avisoPlantilla)$/;
+const ACCIONES_CON_HIST = /^(promo(Add|Up|Down|Del)|carta(Add|Del|Up|Down)|grp(Add|Up|Down|Del)|item(Add|Up|Down|Del)|prod(Add|Del)|sec(Add|Up|Down|Del)|res(Add|Up|Down|Del)|avisoQuitar|avisoPlantilla)$/;
 function alPulsarConHist(e) {
   const b = e.target.closest('[data-act]');
   if (b && b.tagName !== 'INPUT' && ACCIONES_CON_HIST.test(b.dataset.act)) { guardarHist(); errores.clear(); crudos.clear(); }

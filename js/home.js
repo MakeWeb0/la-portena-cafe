@@ -96,7 +96,7 @@ function encender(el, fin, resolve) {
 function hero() {
   if (!GS || REDUCED) return () => {};
 
-  const piezas = ['#status', '#heroSub', '#heroChalk', '#heroLede', '#heroCta .btn', '.scrollcue'];
+  const piezas = ['#heroSub', '#heroChalk', '#heroLede', '#heroCta > *'];
   gsap.set(piezas, { opacity: 0 });
   gsap.set('#heroTitle', { clipPath: 'inset(-20% 100% -30% -10%)' });
   gsap.set('#heroVideo', { clipPath: 'inset(100% 0% 0% 0%)' });
@@ -114,18 +114,16 @@ function hero() {
     gsap.timeline({ defaults: { ease: 'power3.out' }, delay: .15 })
       .to('#fairy', { opacity: 1, duration: 1.4 })
       .to('#hero .lamp', { opacity: 1, duration: 1.4, stagger: .22 }, '<')
-      .to('#status', { opacity: 1, y: 0, duration: .7 }, .1)
       .to('#heroTitle', { clipPath: 'inset(-20% -10% -30% -10%)', duration: 1.5, ease: 'power2.inOut',
                           onComplete: () => gsap.set('#heroTitle', { clearProps: 'clipPath' }) }, .25)
       .fromTo('#heroSub', { y: 14 }, { y: 0, opacity: 1, duration: .8 }, 1.1)
       .fromTo('#heroChalk', { y: 18, rotation: -5 }, { y: 0, rotation: -1.5, opacity: 1, duration: .9 }, 1.3)
       .fromTo('#heroLede', { y: 18 }, { y: 0, opacity: 1, duration: .8 }, 1.5)
-      .fromTo('#heroCta .btn', { y: 18 }, { y: 0, opacity: 1, duration: .6, stagger: .1, clearProps: 'transform' }, 1.65)
+      .fromTo('#heroCta > *', { y: 18 }, { y: 0, opacity: 1, duration: .6, stagger: .1, clearProps: 'transform' }, 1.65)
       .to('#heroVideo', { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.4, ease: 'power4.inOut',
                           onComplete: () => gsap.set('#heroVideo', { clearProps: 'clipPath' }) }, .35)
       .to('#heroVideo video', { scale: 1, duration: 1.9, ease: 'power3.out' }, .35)
-      .fromTo('#board', { y: -260, rotation: -16, opacity: 0 }, { y: 0, rotation: -3.2, opacity: 1, duration: 1.5, ease: 'elastic.out(1,.55)' }, 1.3)
-      .to('.scrollcue', { opacity: 1, duration: .6 }, 2);
+      .fromTo('#board', { y: -260, rotation: -16, opacity: 0 }, { y: 0, rotation: -3.2, opacity: 1, duration: 1.5, ease: 'elastic.out(1,.55)' }, 1.3);
   };
 }
 
@@ -256,11 +254,7 @@ function resenas() {
   $('#revChips').innerHTML = DESTACADOS.map(d => `<span class="chip">${d}</span>`).join('');
 
   const enr = $('#enredadera');
-  enr.innerHTML = `
-    <svg class="enredadera__tallo" viewBox="0 0 80 1000" preserveAspectRatio="none" aria-hidden="true">
-      <path vector-effect="non-scaling-stroke" d="M40 0 C 12 120, 68 240, 40 360 S 12 600, 40 720 S 68 900, 40 1000"/>
-    </svg>` +
-    RESENAS.map((q, i) => `
+  enr.innerHTML = RESENAS.map((q, i) => `
       <blockquote class="hoja ${i % 2 === 0 ? 'hoja--izq' : 'hoja--der'}">
         <div class="hoja__in">
           <div class="hoja__s" aria-label="${q.e || 5} de 5 estrellas">
@@ -278,17 +272,103 @@ function resenas() {
     onView(b, () => gsap.to(b, { width: w, duration: 1.1, ease: 'power2.out' }));
   });
 
-  if (!GS || REDUCED) return;
-
-  const tallo = $('.enredadera__tallo path', enr);
+  /* la rama se dibuja con las medidas reales de las reseñas (y se rehace al cambiar el tamaño) */
   const hojas = $$('.hoja', enr);
   const movil = () => matchMedia('(max-width:760px)').matches;
   const izq   = h => h.classList.contains('hoja--izq') && !movil();
   const origen = h => izq(h) ? '100% 0%' : '0% 0%';
   const signo  = h => izq(h) ? 1 : -1;
+  const animar = GS && !REDUCED;
+  let crecida = !animar;          // cuando ya ha crecido entera, al redibujar sale entera
+  let tl = null;
 
-  const L = tallo.getTotalLength();
-  gsap.set(tallo, { strokeDasharray: L, strokeDashoffset: L });
+  function rama() {
+    $('.rama', enr)?.remove();
+    tl?.scrollTrigger?.kill(); tl?.kill();
+    const Wd = enr.clientWidth, H = enr.clientHeight;
+    const cx = movil() ? 14 : Wd / 2, A = movil() ? 5 : 16;
+    const X = y => cx + A * Math.sin(y / 330 * Math.PI * 2);
+    const f = n => n.toFixed(1);
+
+    /* tallo: puntos cada 16 px siguiendo una onda suave */
+    let d = `M${f(X(0))} 0`;
+    for (let y = 16; y < H; y += 16) d += ` L${f(X(y))} ${y}`;
+    d += ` L${f(X(H))} ${H}`;
+
+    /* ramitas curvas desde el tallo hasta la esquina de cada reseña */
+    const ramitas = [], ocupados = [];
+    hojas.forEach(h => {
+      const yC = h.offsetTop + 14, deIzq = izq(h);
+      const xC = deIzq ? h.offsetLeft + h.offsetWidth - 2 : h.offsetLeft + 2;
+      const y0 = yC + 46, x0 = X(y0);
+      ramitas.push({ d: `M${f(x0)} ${f(y0)} C ${f(x0)} ${f(y0 - 30)}, ${f((x0 + xC) / 2)} ${f(yC - 8)}, ${f(xC)} ${f(yC)}`,
+        hoja: { x: (x0 + xC) / 2, y: yC + 2, r: deIzq ? 200 : -20 } });
+      ocupados.push(y0);
+    });
+
+    /* hojitas alternas a lo largo del tallo, y algún zarcillo enroscado */
+    const LEAF = 'M0 0 C 6 -7, 17 -7, 24 0 C 17 7, 6 7, 0 0 Z';
+    const hojitas = [], zarcillos = [];
+    let lado = 1, n = 0;
+    for (let y = 40; y < H - 20; y += 58) {
+      if (ocupados.some(o => Math.abs(o - y) < 34)) continue;
+      const k = .65 + ((n * 37) % 10) / 22;            // tamaños variados pero fijos
+      hojitas.push({ x: X(y), y, r: lado > 0 ? -28 - (n % 3) * 9 : 208 + (n % 3) * 9, k, c: n % 3 === 0 ? 'b' : 'a' });
+      if (n % 4 === 2) zarcillos.push({ x: X(y + 22), y: y + 22, s: -lado });
+      lado = -lado; n++;
+    }
+
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'rama'); svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('width', Wd); svg.setAttribute('height', H); svg.setAttribute('viewBox', `0 0 ${Wd} ${H}`);
+    svg.innerHTML = `
+      <path class="rama__sombra" d="${d}"/>
+      <path class="rama__tallo" d="${d}"/>
+      <path class="rama__luz" d="${d}"/>
+      ${ramitas.map(r => `<path class="rama__ramita" d="${r.d}"/>`).join('')}
+      ${zarcillos.map(z => `<path class="rama__zarcillo" transform="translate(${f(z.x)} ${f(z.y)}) scale(${z.s} 1)"
+          d="M0 0 C 10 -2, 18 4, 16 11 C 14 17, 6 17, 6 12 C 6 8, 11 8, 11 11"/>`).join('')}
+      ${hojitas.concat(ramitas.map(r => ({ ...r.hoja, k: .8, c: 'b' }))).map(l =>
+        `<g transform="translate(${f(l.x)} ${f(l.y)}) rotate(${f(l.r)}) scale(${l.k})" data-y="${f(l.y)}">
+           <g class="rama__hoja rama__hoja--${l.c}"><path d="${LEAF}"/><path class="rama__nervio" d="M2 0 L21 0"/></g></g>`).join('')}`;
+    enr.prepend(svg);
+
+    const trazos = $$('.rama__sombra, .rama__tallo, .rama__luz', svg);
+    const ramitasEl = $$('.rama__ramita, .rama__zarcillo', svg);
+    const hojasEl = $$('.rama__hoja', svg);
+
+    /* las hojitas se mecen poco a poco desde su base */
+    if (animar) hojasEl.forEach(g => gsap.to(g, { rotation: gsap.utils.random(-7, 7), transformOrigin: '0% 50%',
+      duration: gsap.utils.random(2.6, 4.2), ease: 'sine.inOut', yoyo: true, repeat: -1, delay: gsap.utils.random(0, 2) }));
+
+    if (crecida) return;
+    const prep = el => { const L = el.getTotalLength(); gsap.set(el, { strokeDasharray: L, strokeDashoffset: L }); };
+    trazos.forEach(prep); ramitasEl.forEach(prep);
+    gsap.set(hojasEl, { scale: 0, opacity: 0, transformOrigin: '0% 50%' });
+
+    /* el tallo crece con el scroll; cada ramita y hojita brota cuando el tallo llega a su altura */
+    tl = gsap.timeline({ paused: !window.ScrollTrigger, onComplete: () => { crecida = true; },
+      scrollTrigger: window.ScrollTrigger ? { trigger: enr, start: 'top 75%', end: 'bottom 70%', scrub: .8 } : undefined })
+      .to(trazos, { strokeDashoffset: 0, ease: 'none', duration: 1 }, 0);
+    const en = y => Math.min(.95, Math.max(0, y / H));
+    ramitasEl.forEach(el => {
+      const y = el.getBBox().y + el.getBBox().height;
+      tl.to(el, { strokeDashoffset: 0, ease: 'none', duration: .08 }, en(y));
+    });
+    hojasEl.forEach((g, i) => {
+      const y = +g.parentNode.dataset.y;
+      tl.to(g, { scale: 1, opacity: 1, ease: 'back.out(3)', duration: .06 }, en(y) + .01);
+    });
+    if (!window.ScrollTrigger) onView(enr, () => tl.duration(2.4).play());
+  }
+
+  rama();
+  let espera;
+  addEventListener('resize', () => { clearTimeout(espera); espera = setTimeout(rama, 200); });
+  addEventListener('load', rama);
+
+  if (!animar) return;
   hojas.forEach(h => gsap.set(h, { scale: 0, opacity: 0, rotation: signo(h) * 28, transformOrigin: origen(h) }));
 
   /* Cada hoja se mece sola, desde el punto donde la une el tallo */
@@ -299,13 +379,11 @@ function resenas() {
       duration: gsap.utils.random(2.8, 4.2), ease: 'sine.inOut', yoyo: true, repeat: -1 }));
   };
 
-  onView(enr, () => {
-    gsap.to(tallo, { strokeDashoffset: 0, duration: 2.2, ease: 'power2.inOut' });
-    hojas.forEach((h, i) => gsap.to(h, {
-      scale: 1, opacity: 1, rotation: 0, duration: 1.3, ease: 'elastic.out(1,.6)',
-      delay: .4 + i * .35, transformOrigin: origen(h), onComplete: () => mecer(h)
-    }));
-  });
+  /* cada reseña sale cuando la rama llega a ella */
+  hojas.forEach(h => onView(h, () => gsap.to(h, {
+    scale: 1, opacity: 1, rotation: 0, duration: 1.3, ease: 'elastic.out(1,.6)', delay: .15,
+    transformOrigin: origen(h), onComplete: () => mecer(h)
+  }), '0px 0px -22% 0px'));
 
   hojas.forEach(h => {
     const estrellas = $$('.hoja__s svg', h);

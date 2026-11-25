@@ -50,7 +50,7 @@ teléfono/dirección. Cada botón lleva directo al sitio y deja el cursor listo 
 | **Inicio** | Los atajos de arriba y los 3 pasos (cambiar → Publicar → 1–2 min). |
 | **Horario y avisos** | Botones de aviso listos («Cerrado por vacaciones», «obras», «festivo», «horario especial») que se editan; interruptor *Abierto/Cerrado* por día y horas. La web pone sola «Abierto ahora». |
 | **La carta** | Buscador, nombre y precio de cada plato (con **Intro** se salta al siguiente y se crea uno nuevo), botón **％** para subir o bajar todos los precios de una familia, mover y quitar platos, familias y secciones. |
-| **Tienda** | Foto (toca para cambiarla; se reduce sola), precio con **− / ＋** (10 en 10 céntimos), interruptores *Disponible* y *Solo recogida*, añadir y borrar productos. Sin precio → «Precio en breve». |
+| **Tienda** | Buscador de productos y secciones con su número de productos. Filtro **Sin precio** para ver los que salen como «Precio en breve». Foto (toca para cambiarla; se reduce sola), precio con **− / ＋** (10 en 10 céntimos), interruptores *Disponible* y *Solo recogida*, añadir y borrar productos. En *Opciones de esta sección*: renombrarla, cambiar su frase, moverla o quitarla (solo si está vacía). **Nueva sección** crea una más. |
 | **Reseñas** | Nota y número de reseñas de Google, palabras destacadas y reseñas con **estrellas** que se tocan. |
 | **Datos del local** | Teléfono, WhatsApp de pedidos, dirección, Instagram y las promos de la pizarra de la portada. |
 

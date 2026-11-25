@@ -123,6 +123,8 @@ input::placeholder, textarea::placeholder { color: var(--chalk-3); opacity: .7; 
 .chip:hover { border-color: var(--amber); color: var(--amber); }
 .chip.on { background: var(--amber); border-color: var(--amber); color: #1b1209; }
 .chip--nuevo { border-style: dashed; color: var(--amber); border-color: var(--amber); }
+.chip__n { margin-left: 4px; font-size: .78rem; opacity: .6; font-variant-numeric: tabular-nums; }
+.chip--aviso { border-color: var(--amber); }
 .buscar { max-width: 360px; }
 .grupo > h2 { display: none; }
 .grupo__cab { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; margin-bottom: 16px; }

@@ -80,12 +80,12 @@
 
 <nav class="menu" id="menu" aria-label="Menú principal">
   <ul class="menu__list">
-    <li><a href="#nosotros">Nosotros</a></li>
-    <li><a href="#carta">La carta</a></li>
-    <li><a href="#resenas">Reseñas</a></li>
-    <li><a href="#redes">Redes</a></li>
-    <li><a href="tienda.html">Tienda online <i>Yerba · Mates · Termos</i></a></li>
-    <li><a href="#contacto">Dónde estamos</a></li>
+    <li><a href="#nosotros"><span class="menu__n">01</span><span class="menu__t">Nosotros</span><span class="menu__d">Quiénes somos</span><span class="menu__arr" aria-hidden="true">→</span></a></li>
+    <li><a href="#carta"><span class="menu__n">02</span><span class="menu__t">La carta</span><span class="menu__d">Desayunos, empanadas y dulces</span><span class="menu__arr" aria-hidden="true">→</span></a></li>
+    <li><a href="#resenas"><span class="menu__n">03</span><span class="menu__t">Reseñas</span><span class="menu__d">Lo que dicen de nosotros</span><span class="menu__arr" aria-hidden="true">→</span></a></li>
+    <li><a href="#redes"><span class="menu__n">04</span><span class="menu__t">Redes</span><span class="menu__d">Instagram</span><span class="menu__arr" aria-hidden="true">→</span></a></li>
+    <li><a href="tienda.html"><span class="menu__n">05</span><span class="menu__t">Tienda online</span><span class="menu__d">Yerba · mates · termos</span><span class="menu__arr" aria-hidden="true">→</span></a></li>
+    <li><a href="#contacto"><span class="menu__n">06</span><span class="menu__t">Dónde estamos</span><span class="menu__d">Cómo llegar</span><span class="menu__arr" aria-hidden="true">→</span></a></li>
   </ul>
   <div class="menu__foot">
     <span data-dir></span>
@@ -102,14 +102,21 @@
     <div class="fairy" id="fairy" aria-hidden="true"></div>
     <div class="wrap hero__grid">
       <div class="hero__copy">
-        <p class="status" id="status"><i></i><span>&nbsp;</span></p>
         <h1 class="wordmark" id="heroTitle">La Porteña</h1>
         <p class="hero__sub" id="heroSub"><b>Café</b> · Bar · Alicante</p>
         <p class="hero__chalk" id="heroChalk">Compartamos la misma pasión</p>
         <p class="hero__lede" id="heroLede">Medialunas recién horneadas, empanadas, alfajores hechos aquí y yerba para llevarte a casa. Junto a la estación, con el horno encendido desde las ocho.</p>
         <div class="hero__cta" id="heroCta">
           <a class="btn btn--solid" href="#carta">Ver la carta</a>
-          <a class="btn btn--ghost" href="tienda.html">Tienda online</a>
+          <a class="hero__shop" href="tienda.html">
+            <span class="hero__shop-pics" aria-hidden="true">
+              <img src="assets/img/tienda/mate-cuero-rojo.jpg" alt="" width="40" height="40">
+              <img src="assets/img/tienda/termo-dorado.jpg" alt="" width="40" height="40">
+              <img src="assets/img/tienda/playadito-500.jpg" alt="" width="40" height="40">
+            </span>
+            <span class="hero__shop-txt"><b>Tienda online</b>Yerba, mates, termos y alfajores</span>
+            <span class="hero__shop-arr" aria-hidden="true">→</span>
+          </a>
         </div>
       </div>
 
@@ -126,7 +133,6 @@
         </aside>
       </div>
     </div>
-    <div class="scrollcue" aria-hidden="true"><span>Pasa</span><i></i></div>
   </section>
 
   <!-- ============================================================== NOSOTROS -->
@@ -141,7 +147,6 @@
         </div>
 
         <div class="about__txt" data-reveal>
-          <p class="eyebrow">Desde Buenos Aires hasta la Estación</p>
           <h2>Un cachito de Argentina en Alicante</h2>
           <span class="chalk" aria-hidden="true"></span>
           <p style="margin-top:28px">Abrimos a las ocho con el horno encendido. Primero salen las medialunas,
@@ -166,7 +171,6 @@
   <section class="sec sec--2" id="carta">
     <div class="wrap">
       <div class="head head--c">
-        <p class="eyebrow">Lo que hay hoy</p>
         <h2>La carta</h2>
         <span class="chalk" aria-hidden="true"></span>
         <p class="lede">Del café de la mañana a la última copa. Precios con IVA incluido.</p>
@@ -186,7 +190,6 @@
   <section class="sec sec--2" id="resenas">
     <div class="wrap">
       <div class="head">
-        <p class="eyebrow">Lo que dicen de nosotros</p>
         <h2>Reseñas</h2>
         <span class="chalk" aria-hidden="true"></span>
       </div>
@@ -216,7 +219,6 @@
   <section class="sec wall" id="redes">
     <div class="wrap">
       <div class="head head--c">
-        <p class="eyebrow">Día a día</p>
         <h2>En nuestras redes</h2>
         <span class="chalk" aria-hidden="true"></span>
         <p class="lede">Lo que pasa en la barra, en el horno y en la vitrina. Toca el altavoz para oírlo.</p>
@@ -236,7 +238,6 @@
           <video src="assets/video/tienda.mp4" autoplay muted loop playsinline poster="assets/img/poster/tienda.jpg"></video>
         </div>
         <div data-reveal>
-          <p class="eyebrow">Tienda online</p>
           <h2>Llevate La Porteña a casa</h2>
           <span class="chalk" aria-hidden="true"></span>
           <p class="lede">La misma estantería que ves en el mostrador, pero para casa.
@@ -265,7 +266,6 @@
   <section class="sec wall" id="contacto">
     <div class="wrap">
       <div class="head">
-        <p class="eyebrow">Te esperamos</p>
         <h2>Dónde estamos</h2>
         <span class="chalk" aria-hidden="true"></span>
       </div>

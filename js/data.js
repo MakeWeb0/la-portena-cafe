@@ -464,12 +464,20 @@ const CARTA = [
 /* ---------- Secciones de la tienda ---------- */
 const SECCIONES = [
   { id: "yerbas", t: "Yerbas", d: "El mate de todos los días, de los suaves a los más fuertes." },
-  { id: "mates", t: "Mates", d: "Calabaza, madera, acero y vidrio. Curados y listos para cebar." },
-  { id: "termos", t: "Termos", d: "Acero con cierre a prueba de mochila." },
-  { id: "bombillas", t: "Bombillas", d: "Alpaca y acero, de pico plano o pico de loro." },
+  {
+    id: "mates",
+    t: "Mates",
+    d: "Cuero, madera, acero y aluminio. Pintados a mano, grabados o lisos."
+  },
+  { id: "termos", t: "Termos", d: "De acero, con asa o con pulsador, para el mate de todo el día." },
+  {
+    id: "bombillas",
+    t: "Bombillas y yerberas",
+    d: "Bombillas de acero, filtros de silicona y yerberas para guardar la yerba."
+  },
   { id: "alfajores", t: "Alfajores", d: "Los de siempre y los que hacemos aquí cada mañana." },
   { id: "galletitas", t: "Galletitas", d: "Para el mate de la tarde." },
-  { id: "almacen", t: "Almacén", d: "Dulce de leche, batata, membrillo y mantecol." }
+  { id: "almacen", t: "Almacén", d: "Dulce de leche, batata, membrillo, mantecol y jugos Tang." }
 ];
 
 const img = s => `assets/img/tienda/${s}.jpg`;   // atajo para fotos de tienda
@@ -585,6 +593,46 @@ const PRODUCTOS = [
     i: "assets/img/tienda/sara.jpg"
   },
   {
+    id: "y29",
+    s: "yerbas",
+    n: "Verdeflor Cedrón",
+    v: "500 g",
+    p: 6.1,
+    i: "assets/img/tienda/verdeflor-cedron.jpg"
+  },
+  {
+    id: "y30",
+    s: "yerbas",
+    n: "Verdeflor Naranja",
+    v: "500 g",
+    p: 6.1,
+    i: "assets/img/tienda/verdeflor-naranja.jpg"
+  },
+  {
+    id: "y31",
+    s: "yerbas",
+    n: "Playadito",
+    v: "500 g",
+    p: 5.6,
+    i: "assets/img/tienda/playadito-500.jpg"
+  },
+  {
+    id: "y32",
+    s: "yerbas",
+    n: "Armiño Compuesta",
+    v: "1 kg",
+    p: 11.5,
+    i: "assets/img/tienda/armino-compuesta.jpg"
+  },
+  {
+    id: "y33",
+    s: "yerbas",
+    n: "Cabral Es cosa Buena Nerviosos",
+    v: "compuesta",
+    p: 13.5,
+    i: "assets/img/tienda/es-cosa-buena-nerviosos.jpg"
+  },
+  {
     id: "y18",
     s: "yerbas",
     n: "CBSé Limón",
@@ -672,32 +720,317 @@ const PRODUCTOS = [
     p: null,
     i: "assets/img/tienda/nobleza-cocido.jpg"
   },
-  { id: "m01", s: "mates", n: "Mate de calabaza", v: "curado, con virola", p: null, g: "calabaza" },
+  {
+    id: "m01",
+    s: "mates",
+    n: "Mate de cuero rojo",
+    v: "virola grabada",
+    p: 65,
+    i: "assets/img/tienda/mate-cuero-rojo.jpg"
+  },
   {
     id: "m02",
     s: "mates",
-    n: "Mate camionero",
-    v: "calabaza forrada en cuero",
-    p: null,
-    g: "camionero"
+    n: "Mate de cuero negro",
+    v: "virola grabada",
+    p: 65,
+    i: "assets/img/tienda/mate-cuero-negro.jpg"
   },
-  { id: "m03", s: "mates", n: "Mate de algarrobo", v: "madera torneada", p: null, g: "madera" },
-  { id: "m04", s: "mates", n: "Mate de acero", v: "con base de silicona", p: null, g: "acero" },
-  { id: "m05", s: "mates", n: "Mate de vidrio", v: "con funda", p: null, g: "vidrio" },
-  { id: "m06", s: "mates", n: "Mate torpedo", v: "alpaca repujada", p: null, g: "torpedo" },
-  { id: "t01", s: "termos", n: "Termo de acero 1 L", v: "con pico cebador", p: null, g: "termo" },
-  { id: "t02", s: "termos", n: "Termo de acero 500 ml", v: "para llevar", p: null, g: "termo-mini" },
-  { id: "t03", s: "termos", n: "Termo 1,2 L", v: "tapón a rosca", p: null, g: "termo-alto" },
-  { id: "t04", s: "termos", n: "Matera", v: "bolso para mate y termo", p: null, g: "matera" },
-  { id: "b01", s: "bombillas", n: "Bombilla de alpaca", v: "pico plano", p: null, g: "bombilla" },
-  { id: "b02", s: "bombillas", n: "Bombilla de acero", v: "desmontable", p: null, g: "bombilla" },
+  {
+    id: "m03",
+    s: "mates",
+    n: "Mate negro tallado",
+    v: "con patas y virola",
+    p: 78,
+    i: "assets/img/tienda/mate-negro-tallado.jpg"
+  },
+  {
+    id: "m04",
+    s: "mates",
+    n: "Mate de madera",
+    v: "virola decorada",
+    p: 70,
+    i: "assets/img/tienda/mate-madera-virola.jpg"
+  },
+  {
+    id: "m05",
+    s: "mates",
+    n: "Mate de aluminio",
+    v: "",
+    p: 15,
+    i: "assets/img/tienda/mate-aluminio.jpg"
+  },
+  {
+    id: "m06",
+    s: "mates",
+    n: "Mate beige",
+    v: "con patas y virola de acero",
+    p: 28,
+    i: "assets/img/tienda/mate-beige-patas.jpg"
+  },
+  {
+    id: "m07",
+    s: "mates",
+    n: "Mate de madera pintado",
+    v: "rosa con flores",
+    p: null,
+    i: "assets/img/tienda/mate-pintado-rosa-flores.jpg"
+  },
+  {
+    id: "m08",
+    s: "mates",
+    n: "Mate de madera pintado",
+    v: "rosa con borde de madera",
+    p: 26,
+    i: "assets/img/tienda/mate-pintado-rosa-borde.jpg"
+  },
+  {
+    id: "m09",
+    s: "mates",
+    n: "Mate de madera pintado",
+    v: "azul con flores",
+    p: 26,
+    i: "assets/img/tienda/mate-pintado-azul-flores.jpg"
+  },
+  {
+    id: "m10",
+    s: "mates",
+    n: "Mate de madera rosa",
+    v: "con arcoíris",
+    p: 26,
+    i: "assets/img/tienda/mate-rosa-arcoiris.jpg"
+  },
+  {
+    id: "m11",
+    s: "mates",
+    n: "Mate de madera grabado",
+    v: "escudo de Argentina",
+    p: 26,
+    i: "assets/img/tienda/mate-grabado-escudo.jpg"
+  },
+  {
+    id: "m12",
+    s: "mates",
+    n: "Mate de madera grabado",
+    v: "mapa de Argentina",
+    p: 26,
+    i: "assets/img/tienda/mate-grabado-mapa.jpg"
+  },
+  {
+    id: "m13",
+    s: "mates",
+    n: "Mate de madera grabado",
+    v: "Sol de Mayo con flores",
+    p: 26,
+    i: "assets/img/tienda/mate-grabado-sol.jpg"
+  },
+  {
+    id: "m14",
+    s: "mates",
+    n: "Mate bola celeste",
+    v: "virola de acero",
+    p: 16,
+    i: "assets/img/tienda/mate-bola-celeste.jpg"
+  },
+  {
+    id: "m15",
+    s: "mates",
+    n: "Mate bola beige",
+    v: "virola de acero",
+    p: 16,
+    i: "assets/img/tienda/mate-bola-beige.jpg"
+  },
+  {
+    id: "m16",
+    s: "mates",
+    n: "Mate bola amarillo lima",
+    v: "virola de acero",
+    p: 16,
+    i: "assets/img/tienda/mate-bola-lima.jpg"
+  },
+  {
+    id: "m17",
+    s: "mates",
+    n: "Mate de acero negro",
+    v: "",
+    p: 18,
+    i: "assets/img/tienda/mate-acero-negro.jpg"
+  },
+  {
+    id: "m18",
+    s: "mates",
+    n: "Mate de acero rosa",
+    v: "",
+    p: 18,
+    i: "assets/img/tienda/mate-acero-rosa.jpg"
+  },
+  {
+    id: "m19",
+    s: "mates",
+    n: "Mate verde oscuro",
+    v: "vaso recto",
+    p: 15,
+    i: "assets/img/tienda/mate-recto-verde.jpg"
+  },
+  {
+    id: "m20",
+    s: "mates",
+    n: "Mate negro",
+    v: "vaso recto",
+    p: 15,
+    i: "assets/img/tienda/mate-recto-negro.jpg"
+  },
+  {
+    id: "m21",
+    s: "mates",
+    n: "Mate de acero verde menta",
+    v: "",
+    p: 18,
+    i: "assets/img/tienda/mate-acero-menta.jpg"
+  },
+  {
+    id: "m22",
+    s: "mates",
+    n: "Mate blanco",
+    v: "vaso recto",
+    p: 15,
+    i: "assets/img/tienda/mate-recto-blanco.jpg"
+  },
+  {
+    id: "m23",
+    s: "mates",
+    n: "Mate River Plate",
+    v: "plástico · «Exceso de aguante»",
+    p: null,
+    i: "assets/img/tienda/mate-river.jpg"
+  },
+  {
+    id: "t01",
+    s: "termos",
+    n: "Termo con pulsador",
+    v: "dispensador de acero",
+    p: 40,
+    i: "assets/img/tienda/termo-pulsador.jpg"
+  },
+  {
+    id: "t02",
+    s: "termos",
+    n: "Termo verde militar",
+    v: "con asa",
+    p: 31,
+    i: "assets/img/tienda/termo-verde-militar.jpg"
+  },
+  {
+    id: "t03",
+    s: "termos",
+    n: "Termo dorado",
+    v: "con asa lateral",
+    p: 45,
+    i: "assets/img/tienda/termo-dorado.jpg"
+  },
+  {
+    id: "t04",
+    s: "termos",
+    n: "Termo cobre",
+    v: "con asa",
+    p: 31,
+    i: "assets/img/tienda/termo-cobre.jpg"
+  },
+  {
+    id: "t05",
+    s: "termos",
+    n: "Termo de acero",
+    v: "con asa y base de silicona",
+    p: 39,
+    i: "assets/img/tienda/termo-acero-asa.jpg"
+  },
+  {
+    id: "t06",
+    s: "termos",
+    n: "Termo de acero",
+    v: "con base de silicona",
+    p: 39,
+    i: "assets/img/tienda/termo-acero-silicona.jpg"
+  },
+  {
+    id: "t07",
+    s: "termos",
+    n: "Termo negro mate",
+    v: "con banda blanca",
+    p: null,
+    i: "assets/img/tienda/termo-negro-banda.jpg"
+  },
+  {
+    id: "t08",
+    s: "termos",
+    n: "Pack termo bala 500 ml",
+    v: "con mate y bombilla",
+    p: null,
+    i: "assets/img/tienda/pack-termo-bala.jpg"
+  },
+  {
+    id: "b01",
+    s: "bombillas",
+    n: "Bombilla de acero",
+    v: "virola dorada y filtro ranurado",
+    p: 8,
+    i: "assets/img/tienda/bombilla-dorada-ranurada.jpg"
+  },
+  {
+    id: "b02",
+    s: "bombillas",
+    n: "Bombilla de acero",
+    v: "virola dorada y punta plana",
+    p: 8,
+    i: "assets/img/tienda/bombilla-dorada-plana.jpg"
+  },
   {
     id: "b03",
     s: "bombillas",
-    n: "Bombilla pico de loro",
-    v: "alpaca cincelada",
-    p: null,
-    g: "bombilla-loro"
+    n: "Bombilla de acero",
+    v: "filtro de resorte",
+    p: 12,
+    i: "assets/img/tienda/bombilla-resorte.jpg"
+  },
+  {
+    id: "b04",
+    s: "bombillas",
+    n: "Bombilla de acero",
+    v: "punta acodada",
+    p: 12,
+    i: "assets/img/tienda/bombilla-acodada.jpg"
+  },
+  {
+    id: "b05",
+    s: "bombillas",
+    n: "Filtros de silicona",
+    v: "para bombilla, varios colores",
+    p: 4,
+    i: "assets/img/tienda/filtros-silicona.jpg"
+  },
+  {
+    id: "b06",
+    s: "bombillas",
+    n: "Yerbera",
+    v: "plástico, rosa",
+    p: 10,
+    i: "assets/img/tienda/yerbera-rosa.jpg"
+  },
+  {
+    id: "b07",
+    s: "bombillas",
+    n: "Yerbera",
+    v: "plástico, gris",
+    p: 10,
+    i: "assets/img/tienda/yerbera-gris.jpg"
+  },
+  {
+    id: "b08",
+    s: "bombillas",
+    n: "Yerbera",
+    v: "plástico, verde menta",
+    p: 10,
+    i: "assets/img/tienda/yerbera-menta.jpg"
   },
   {
     id: "a01",
@@ -711,11 +1044,11 @@ const PRODUCTOS = [
   {
     id: "a02",
     s: "alfajores",
-    n: "Punta Ballena triple",
+    n: "Punta Ballena Triple",
     v: "",
-    p: 3,
+    p: 3.5,
     pickupOnly: true,
-    g: "alfajor"
+    i: "assets/img/tienda/pb-triple.jpg"
   },
   {
     id: "a03",
@@ -727,9 +1060,151 @@ const PRODUCTOS = [
     g: "alfajor"
   },
   { id: "a04", s: "alfajores", n: "Arcor", v: "", p: 3, pickupOnly: true, g: "alfajor" },
-  { id: "a05", s: "alfajores", n: "Havanna", v: "", p: 2.8, pickupOnly: true, g: "alfajor" },
-  { id: "a06", s: "alfajores", n: "Havannet", v: "", p: 2.7, pickupOnly: true, g: "alfajor" },
+  {
+    id: "a05",
+    s: "alfajores",
+    n: "Havanna clásico chocolate",
+    v: "unidad · 55 g",
+    p: 2.8,
+    pickupOnly: true,
+    i: "assets/img/tienda/havanna-clasicos.jpg"
+  },
+  {
+    id: "a06",
+    s: "alfajores",
+    n: "Havannet chocolate",
+    v: "unidad · 38 g",
+    p: 2.8,
+    pickupOnly: true,
+    i: "assets/img/tienda/havannets.jpg"
+  },
   { id: "a07", s: "alfajores", n: "Gusto", v: "", p: 2.5, pickupOnly: true, g: "alfajor" },
+  {
+    id: "a08",
+    s: "alfajores",
+    n: "Havanna clásicos",
+    v: "caja surtida, chocolate y merengue",
+    p: 28,
+    i: "assets/img/tienda/havanna-clasicos.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "a09",
+    s: "alfajores",
+    n: "Havanna clásico merengue",
+    v: "unidad · 47 g",
+    p: null,
+    i: "assets/img/tienda/havanna-clasicos.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "a10",
+    s: "alfajores",
+    n: "Havanna Mar del Plata",
+    v: "caja de 4 · 360 g",
+    p: 18,
+    i: "assets/img/tienda/havanna-mar-del-plata.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "a11",
+    s: "alfajores",
+    n: "Havanna Mar del Plata",
+    v: "unidad · 90 g",
+    p: 4.8,
+    i: "assets/img/tienda/havanna-mar-del-plata.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "a12",
+    s: "alfajores",
+    n: "Havanna sin azúcares añadidos",
+    v: "caja de 4 · 280 g",
+    p: 18,
+    i: "assets/img/tienda/havanna-sin-azucar.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "a13",
+    s: "alfajores",
+    n: "Havanna sin azúcares añadidos",
+    v: "unidad · 70 g",
+    p: 4.8,
+    i: "assets/img/tienda/havanna-sin-azucar.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "a14",
+    s: "alfajores",
+    n: "Havanna de nuez",
+    v: "caja · 330 g",
+    p: null,
+    i: "assets/img/tienda/havanna-nuez.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "a15",
+    s: "alfajores",
+    n: "Havanna de nuez",
+    v: "unidad",
+    p: 3.5,
+    i: "assets/img/tienda/havanna-nuez.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "a16",
+    s: "alfajores",
+    n: "Havannets",
+    v: "caja de chocolate · 456 g",
+    p: null,
+    i: "assets/img/tienda/havannets.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "a17",
+    s: "alfajores",
+    n: "Havannet chocolate blanco",
+    v: "unidad · 38 g",
+    p: 2.8,
+    i: "assets/img/tienda/havannets.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "a18",
+    s: "alfajores",
+    n: "Punta Ballena Surprise",
+    v: "tres rellenos",
+    p: 3.6,
+    i: "assets/img/tienda/pb-surprise.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "a19",
+    s: "alfajores",
+    n: "Punta Ballena Dubai",
+    v: "pistacho",
+    p: 4.6,
+    i: "assets/img/tienda/pb-dubai.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "a20",
+    s: "alfajores",
+    n: "Punta Ballena Cocolate",
+    v: "con coco",
+    p: 3.5,
+    i: "assets/img/tienda/pb-cocolate.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "a21",
+    s: "alfajores",
+    n: "Punta Ballena Triple Nieve",
+    v: "",
+    p: 3.5,
+    i: "assets/img/tienda/pb-triple-nieve.jpg",
+    pickupOnly: true
+  },
   { id: "g01", s: "galletitas", n: "Amor / Rumba", v: "", p: 1.5, pickupOnly: true, g: "galleta" },
   { id: "g02", s: "galletitas", n: "Chocolinas", v: "", p: 1.9, pickupOnly: true, g: "galleta" },
   { id: "g03", s: "galletitas", n: "Don Satur", v: "", p: 2.9, pickupOnly: true, g: "galleta" },
@@ -739,10 +1214,10 @@ const PRODUCTOS = [
     id: "c01",
     s: "almacen",
     n: "Dulce de leche Havanna",
-    v: "",
-    p: 6,
+    v: "450 g",
+    p: 7,
     pickupOnly: true,
-    g: "tarro"
+    i: "assets/img/tienda/dulce-leche-havanna.jpg"
   },
   {
     id: "c02",
@@ -820,7 +1295,43 @@ const PRODUCTOS = [
   },
   { id: "c12", s: "almacen", n: "Café Morenita", v: "", p: 6, pickupOnly: true, g: "tarro" },
   { id: "c13", s: "almacen", n: "Mate cocido litoral", v: "", p: 4.5, pickupOnly: true, g: "caja" },
-  { id: "c14", s: "almacen", n: "Picodulce", v: "", p: 0.5, pickupOnly: true, g: "barra" }
+  { id: "c14", s: "almacen", n: "Picodulce", v: "", p: 0.5, pickupOnly: true, g: "barra" },
+  {
+    id: "c15",
+    s: "almacen",
+    n: "Dulce de leche Quay",
+    v: "350 g",
+    p: 5.5,
+    i: "assets/img/tienda/dulce-leche-quay.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "c16",
+    s: "almacen",
+    n: "Tang Tropical",
+    v: "jugo en polvo",
+    p: 1.6,
+    i: "assets/img/tienda/tang-tropical.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "c17",
+    s: "almacen",
+    n: "Tang Piña",
+    v: "jugo en polvo",
+    p: 1.6,
+    i: "assets/img/tienda/tang-pina.jpg",
+    pickupOnly: true
+  },
+  {
+    id: "c18",
+    s: "almacen",
+    n: "Tang Naranja",
+    v: "jugo en polvo",
+    p: 1.6,
+    i: "assets/img/tienda/tang-naranja.jpg",
+    pickupOnly: true
+  }
 ];
 
 /* ---------- Reseñas reales de Google ---------- */

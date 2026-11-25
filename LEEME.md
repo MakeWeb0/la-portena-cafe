@@ -28,7 +28,7 @@ js/data.js              ← LO QUE SE EDITA: contacto, carta, tienda y reseñas
 js/common.js            lo que comparten: navbar, carrito, luces, hojas, separadores
 js/home.js              portada: hero, carta, fotos, reseñas, redes
 js/tienda.js            tienda: catálogo, carrito, entrega y pedido
-assets/img/tienda/      las 28 fotos de yerbas
+assets/img/tienda/      fotos de la tienda: yerbas, mates, termos, bombillas, alfajores…
 assets/img/comida/      las 14 fotos de la bollería (sección «Recién hecho» y rincones)
 assets/img/poster/      primer fotograma de cada vídeo
 assets/video/           los vídeos, comprimidos para web
@@ -119,7 +119,9 @@ lo mismo. Los límites están al principio del bloque de la carta en `home.js`
    pomelo y hierbas serranas, La Tranquera, Armiño, Cabral Para Nerviosos,
    Amanda, Playadito mate cocido, Rosamonte mate cocido y Nobleza Gaucha mate
    cocido.
-2. **Mates, termos y bombillas**: fotos y precios. Ahora van con ilustración.
+2. **Precio de los productos de la lista que llegaron sin él**: termo negro mate con banda blanca,
+   pack termo bala 500 ml, mate de madera pintado rosa con flores, mate River Plate, Havanna
+   clásico de merengue (unidad), Havanna de nuez (caja) y Havannets (caja).
 3. **Confirmar el WhatsApp** de pedidos.
 
 ## Envíos
